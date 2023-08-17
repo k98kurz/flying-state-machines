@@ -15,6 +15,7 @@ class Event(Enum):
     STOP = auto()
     CONTINUE = auto()
     QUANTUM_FOAM = auto()
+    NORMALIZE = auto()
 
 
 class Machine(classes.FSM):
@@ -28,7 +29,13 @@ class Machine(classes.FSM):
         ),
         *classes.Transition.from_any(
             State, Event.QUANTUM_FOAM, State.NEITHER, 0.5
-        )
+        ),
+        *classes.Transition.to_any(
+            State.SUPERPOSITION, Event.NORMALIZE, [State.WAITING, State.GOING]
+        ),
+        *classes.Transition.to_any(
+            State.NEITHER, Event.NORMALIZE, [State.WAITING, State.GOING]
+        ),
     ])
     initial_state = State.WAITING
 
@@ -233,6 +240,20 @@ class TestFSM(unittest.TestCase):
         assert superposition + neither == 10
         assert superposition > 0
         assert neither > 0
+
+        waiting, going = 0, 0
+        for i in range(10):
+            machine.current = State.SUPERPOSITION if i%2 else State.NEITHER
+            machine.input(Event.NORMALIZE)
+            if machine.current is State.WAITING:
+                waiting += 1
+            if machine.current is State.GOING:
+                going += 1
+
+        assert waiting + going == 10
+        assert waiting > 0
+        assert going > 0
+
 
     def test_FSM_subclass_touched_is_Flying_Spaghetti_monster_str(self):
         machine = Machine()
