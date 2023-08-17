@@ -143,7 +143,8 @@ class FSM:
         """Given the current state of the machine and an event, return a
             tuple of possible Transitions.
         """
-        if event not in self._valid_transitions[self.current]:
+        if self.current not in self._valid_transitions or \
+            event not in self._valid_transitions[self.current]:
             return tuple()
         return tuple([
             transition for transition in self.rules
