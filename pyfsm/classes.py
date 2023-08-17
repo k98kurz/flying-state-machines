@@ -148,7 +148,7 @@ class FSM:
         if event in self._event_hooks:
             canceled = False
             for hook in self._event_hooks[event]:
-                if hook(event) is False:
+                if hook(event, self) is False:
                     canceled = True
             if canceled:
                 return self.current

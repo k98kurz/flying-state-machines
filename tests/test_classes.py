@@ -85,6 +85,78 @@ class TestFSM(unittest.TestCase):
         assert hasattr(machine, 'previous') and machine.previous is None
         assert hasattr(machine, 'next') and machine.next is None
 
+    def test_FSM_subclass_would_returns_tuple_of_Transition(self):
+        machine = Machine()
+        tns = machine.would(Event.CONTINUE)
+        assert type(tns) is tuple
+        for tn in tns:
+            assert isinstance(tn, classes.Transition)
+
+    def test_FSM_subclass_input_returns_state_after_Transition(self):
+        machine = Machine()
+        assert machine.current is State.WAITING
+        res = machine.input(Event.START)
+        assert machine.current is State.GOING
+        assert isinstance(res, State)
+
+    def test_FSM_subclass_event_hooks_fire_on_event(self):
+        machine = Machine()
+        log = {}
+        def hook(event, _):
+            if event not in log:
+                log[event] = 0
+            log[event] += 1
+
+        with self.assertRaises(AssertionError) as e:
+            machine.add_event_hook(Event.START, 1)
+        assert str(e.exception) == 'hook must be Callable[[Enum|str, FSM], bool]'
+
+        machine.add_event_hook(Event.START, hook)
+
+        assert Event.START not in log
+        machine.input(Event.START)
+        assert Event.START in log and log[Event.START] == 1
+        machine.input(Event.START)
+        assert log[Event.START] == 2
+        machine.remove_event_hook(Event.START, hook)
+        machine.input(Event.START)
+        assert log[Event.START] == 2
+
+    def test_FSM_subclass_event_hooks_can_cancel_Transition(self):
+        machine = Machine()
+        log = {}
+        def hook(event, _):
+            if event not in log:
+                log[event] = 0
+            log[event] += 1
+            return False
+
+        assert machine.current is State.WAITING
+        machine.add_event_hook(Event.START, hook)
+        machine.input(Event.START)
+        assert machine.current is State.WAITING
+        assert Event.START in log and log[Event.START] == 1
+
+    def test_FSM_subclass_transition_hooks_e2e(self):
+        machine = Machine()
+        log = {}
+        def hook(transition):
+            if transition not in log:
+                log[transition] = 0
+            log[transition] += 1
+
+        tn = machine.would(Event.START)[0]
+        machine.add_transition_hook(tn, hook)
+        assert tn not in log
+        machine.input(Event.START)
+        assert tn in log and log[tn] == 1
+
+        machine.remove_transition_hook(tn, hook)
+        machine.input(Event.STOP)
+        assert machine.would(Event.START)[0] is tn
+        machine.input(Event.START)
+        assert log[tn] == 1
+
 
 if __name__ == "__main__":
     unittest.main()
