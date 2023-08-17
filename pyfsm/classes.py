@@ -3,7 +3,6 @@ from enum import Enum
 from random import random
 from typing import Callable
 
-
 class Transition:
     from_state: Enum|str
     to_state: Enum|str
@@ -58,7 +57,10 @@ class FSM:
     _event_hooks: dict[Enum|str, list[Callable]]
 
     def __init__(self) -> None:
+        assert hasattr(self, 'rules'), 'self.rules must be set[Transition]'
         assert isinstance(self.rules, set), 'self.rules must be set[Transition]'
+        self._valid_transitions = {}
+        self._event_hooks =  {}
         for rule in self.rules:
             assert isinstance(rule, Transition), 'self.rules must be set[Transition]'
             if rule.from_state not in self._valid_transitions:
