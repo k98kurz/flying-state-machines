@@ -185,3 +185,17 @@ class FSM:
             transition.trigger()
 
         return self.current
+
+    def touched(self) -> str:
+        """Represent the state machine as a Flying Spaghetti Monster."""
+        return f"""\
+\t[{self.previous}]\t\t\t[{self.next}]
+\t   \\\t\t\t   /
+\t\t((({self.current})))
+{self._valid_transitions}
+        s     s        s         s
+       s        s     s            s
+      s        s                  s
+       s                        s
+
+~Touched by His Noodly Appendage~"""

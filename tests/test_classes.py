@@ -202,6 +202,12 @@ class TestFSM(unittest.TestCase):
         assert neither > 0
         assert superposition + neither == 10
 
+    def test_FSM_subclass_str_is_Flying_Spaghetti_monster(self):
+        machine = Machine()
+        print('\n' + machine.touched())
+        assert len(machine.touched()) > 10 * len(machine.rules)
+        assert machine.touched()[-33:] == '~Touched by His Noodly Appendage~'
+
 
 if __name__ == "__main__":
     unittest.main()
