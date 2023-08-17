@@ -1,5 +1,6 @@
 from context import classes
 from enum import Enum, auto
+from random import random
 import unittest
 
 
@@ -257,6 +258,10 @@ class TestFSM(unittest.TestCase):
 
     def test_FSM_subclass_touched_is_Flying_Spaghetti_monster_str(self):
         machine = Machine()
+        if random() < 0.2:
+            machine.input(Event.START)
+        elif random() < 0.5:
+            machine.input(Event.QUANTUM_FOAM)
         print('\n' + machine.touched())
         assert len(machine.touched()) > 10 * len(machine.rules)
         assert machine.touched()[-33:] == '~Touched by His Noodly Appendage~'
