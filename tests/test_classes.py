@@ -18,33 +18,28 @@ class Event(Enum):
 
 
 class Machine(classes.FSM):
-    def __init__(self) -> None:
-        rules = [
-            classes.Transition(State.WAITING, Event.CONTINUE, State.WAITING),
-            classes.Transition(State.WAITING, Event.START, State.GOING),
-            classes.Transition(State.GOING, Event.CONTINUE, State.GOING),
-            classes.Transition(State.GOING, Event.STOP, State.WAITING),
-        ]
-        rules.extend(classes.Transition.from_any(
+    rules = set([
+        classes.Transition(State.WAITING, Event.CONTINUE, State.WAITING),
+        classes.Transition(State.WAITING, Event.START, State.GOING),
+        classes.Transition(State.GOING, Event.CONTINUE, State.GOING),
+        classes.Transition(State.GOING, Event.STOP, State.WAITING),
+        *classes.Transition.from_any(
             State, Event.QUANTUM_FOAM, State.SUPERPOSITION, 0.5
-        ))
-        rules.extend(classes.Transition.from_any(
+        ),
+        *classes.Transition.from_any(
             State, Event.QUANTUM_FOAM, State.NEITHER, 0.5
-        ))
-        self.rules = set(rules)
-        self.initial_state = State.WAITING
-        super().__init__()
+        )
+    ])
+    initial_state = State.WAITING
 
 
 class StrMachine(classes.FSM):
-    def __init__(self) -> None:
-        self.rules = set([
-            classes.Transition('hungry', 'get food', 'eating'),
-            classes.Transition('eating', 'food gone', 'sad'),
-            classes.Transition('sad', 'time passes', 'hungry'),
-        ])
-        self.initial_state = 'hungry'
-        super().__init__()
+    rules = set([
+        classes.Transition('hungry', 'get food', 'eating'),
+        classes.Transition('eating', 'food gone', 'sad'),
+        classes.Transition('sad', 'time passes', 'hungry'),
+    ])
+    initial_state = 'hungry'
 
 
 class TestTransition(unittest.TestCase):
