@@ -39,16 +39,16 @@ To use this library to make a Flying State Machine™, import and extend as show
 below:
 
 ```python
-from enum import Enum, auto()
+from enum import Enum, auto
 from flying_state_machines import Transition, FSM
 
 class State(Enum):
-    NORMAL_CLOTHES: auto()
-    PIRATE_CLOTHES: auto()
+    NORMAL_CLOTHES = auto()
+    PIRATE_CLOTHES = auto()
 
 class Event(Enum):
-    IS_FRIDAY: auto()
-    IS_NOT_FRIDAY: auto()
+    IS_FRIDAY = auto()
+    IS_NOT_FRIDAY = auto()
 
 
 class Pastafarian(FSM):
