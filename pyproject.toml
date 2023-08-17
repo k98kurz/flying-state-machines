@@ -1,0 +1,25 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "flying-state-machines"
+version = "0.0.1"
+authors = [
+  { name="k98kurz", email="k98kurz@gmail.com" },
+]
+description = "The only Finite State Machine library with a Flying Spaghetti Monster serialization format"
+readme = "readme.md"
+requires-python = ">=3.10"
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: ISC License (ISCL)",
+  "Operating System :: OS Independent",
+  "Topic :: Religion",
+  "Topic :: Software Development :: Libraries",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/k98kurz/flying-state-machines"
+"Bug Tracker" = "https://github.com/k98kurz/flying-state-machines/issues"
