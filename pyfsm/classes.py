@@ -3,6 +3,7 @@ from enum import Enum
 from random import random
 from typing import Callable
 
+
 class Transition:
     from_state: Enum|str
     to_state: Enum|str
@@ -28,6 +29,7 @@ class Transition:
         self.hooks = hooks
 
     def __hash__(self) -> int:
+        """Makes the Transition hashable."""
         return hash((self.from_state, self.to_state, self.on_event, self.probability))
 
     def add_hook(self, hook: Callable[[Transition]]) -> None:
@@ -45,6 +47,29 @@ class Transition:
         """Triggers all hooks."""
         for hook in self.hooks:
             hook(self)
+
+    @classmethod
+    def from_any(cls, from_states: type[Enum]|list[str], to_state: Enum|str,
+                 event: Enum|str, probability = 1.0) -> list[Transition]:
+        """Makes a list of Transitions from any valid state to a
+            specific state, each with the given probability.
+        """
+        return [
+            cls(state, to_state, event, probability)
+            for state in from_states
+        ]
+
+    @classmethod
+    def to_any(cls, from_state: Enum|str, to_states: type[Enum]|list[str],
+               event: Enum|str, total_probability = 1.0) -> list[Transition]:
+        """Makes a list of Transitions from a specific state to any
+            valid state, with the given cumulative probability.
+        """
+        probability = total_probability / len(to_states)
+        return [
+            cls(from_state, state, event, probability)
+            for state in to_states
+        ]
 
 
 class FSM:

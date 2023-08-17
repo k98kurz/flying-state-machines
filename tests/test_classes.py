@@ -6,22 +6,32 @@ import unittest
 class State(Enum):
     WAITING = auto()
     GOING = auto()
+    NEITHER = auto()
+    SUPERPOSITION = auto()
 
 
 class Event(Enum):
     START = auto()
     STOP = auto()
     CONTINUE = auto()
+    QUANTUM_FOAM = auto()
 
 
 class Machine(classes.FSM):
     def __init__(self) -> None:
-        self.rules = set([
+        rules = [
             classes.Transition(State.WAITING, State.WAITING, Event.CONTINUE),
             classes.Transition(State.WAITING, State.GOING, Event.START),
             classes.Transition(State.GOING, State.GOING, Event.CONTINUE),
             classes.Transition(State.GOING, State.WAITING, Event.STOP),
-        ])
+        ]
+        rules.extend(classes.Transition.from_any(
+            State, State.SUPERPOSITION, Event.QUANTUM_FOAM, 0.5
+        ))
+        rules.extend(classes.Transition.from_any(
+            State, State.NEITHER, Event.QUANTUM_FOAM, 0.5
+        ))
+        self.rules = set(rules)
         self.initial_state = State.WAITING
         super().__init__()
 
@@ -69,6 +79,26 @@ class TestTransition(unittest.TestCase):
         transition.remove_hook(hook)
         transition.trigger()
         assert log['count'] == 2
+
+    def test_Transition_from_any_returns_list_of_Transition(self):
+        tns = classes.Transition.from_any(
+            State, State.SUPERPOSITION, Event.QUANTUM_FOAM
+        )
+        assert type(tns) is list
+        for tn in tns:
+            assert isinstance(tn, classes.Transition)
+            assert tn.to_state is State.SUPERPOSITION
+            assert tn.on_event is Event.QUANTUM_FOAM
+
+    def test_Transition_to_any_returns_list_of_Transition(self):
+        tns = classes.Transition.to_any(
+            State.SUPERPOSITION, State, Event.QUANTUM_FOAM
+        )
+        assert type(tns) is list
+        for tn in tns:
+            assert isinstance(tn, classes.Transition)
+            assert tn.from_state is State.SUPERPOSITION
+            assert tn.on_event is Event.QUANTUM_FOAM
 
 
 class TestFSM(unittest.TestCase):
@@ -156,6 +186,21 @@ class TestFSM(unittest.TestCase):
         assert machine.would(Event.START)[0] is tn
         machine.input(Event.START)
         assert log[tn] == 1
+
+    def test_FSM_subclass_random_transitions(self):
+        machine = Machine()
+        superposition, neither = 0, 0
+
+        for _ in range(10):
+            machine.input(Event.QUANTUM_FOAM)
+            if machine.current is State.SUPERPOSITION:
+                superposition += 1
+            if machine.current is State.NEITHER:
+                neither += 1
+
+        assert superposition > 0
+        assert neither > 0
+        assert superposition + neither == 10
 
 
 if __name__ == "__main__":
