@@ -78,7 +78,7 @@ and events.
 ### Randomized transitions
 
 It is possible to encode randomized transitions by supplying multiple
-`Transition`s with identical `from_state` and `on_event`. The cummulative
+`Transition`s with identical `from_state` and `on_event`. The cumulative
 probability of all such `Transition`s must be <= 1.0.
 
 ```python
