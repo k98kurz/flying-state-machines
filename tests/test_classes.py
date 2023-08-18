@@ -255,7 +255,6 @@ class TestFSM(unittest.TestCase):
         assert waiting > 0
         assert going > 0
 
-
     def test_FSM_subclass_touched_is_Flying_Spaghetti_monster_str(self):
         machine = Machine()
         if random() < 0.2:

@@ -149,7 +149,7 @@ class FSM:
             return tuple()
         return tuple([
             transition for transition in self.rules
-            if transition.from_state is self.current and transition.on_event is event
+            if transition.from_state == self.current and transition.on_event == event
         ])
 
     def input(self, event: Enum|str) -> Enum|str:
