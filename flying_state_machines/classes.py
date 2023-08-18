@@ -32,6 +32,9 @@ class Transition:
         """Makes the Transition hashable."""
         return hash((self.from_state, self.to_state, self.on_event))
 
+    def __repr__(self) -> str:
+        return repr((self.from_state, self.on_event, self.to_state, self.probability))
+
     def add_hook(self, hook: Callable[[Transition]]) -> None:
         """Adds a hook for when the Transition occurs."""
         assert callable(hook), 'hook must be Callable[[Transition]]'
@@ -79,7 +82,7 @@ class FSM:
     current: Enum|str
     previous: Enum|str|None
     next: Enum|str|None
-    _valid_transitions: dict[Enum|str, dict[Enum|str, dict[Enum|str, float]]]
+    _valid_transitions: dict[Enum|str, dict[Enum|str, list[Transition]]]
     _event_hooks: dict[Enum|str, list[Callable]]
 
     def __init__(self) -> None:
@@ -92,12 +95,12 @@ class FSM:
             if rule.from_state not in self._valid_transitions:
                 self._valid_transitions[rule.from_state] = {}
             if rule.on_event not in self._valid_transitions[rule.from_state]:
-                self._valid_transitions[rule.from_state][rule.on_event] = {}
-            self._valid_transitions[rule.from_state][rule.on_event][rule.to_state] = rule.probability
+                self._valid_transitions[rule.from_state][rule.on_event] = []
+            self._valid_transitions[rule.from_state][rule.on_event].append(rule)
         for from_state in self._valid_transitions:
             for on_event in self._valid_transitions[from_state]:
                 transitions = self._valid_transitions[from_state][on_event]
-                total_probability = sum([p for _, p in transitions.items()])
+                total_probability = sum([r.probability for r in transitions])
                 assert total_probability <= 1.0, \
                     'total probability for state transitions must be <= 1.0'
         assert isinstance(self.initial_state, Enum) or type(self.initial_state) is str, \
@@ -147,10 +150,7 @@ class FSM:
         if self.current not in self._valid_transitions or \
             event not in self._valid_transitions[self.current]:
             return tuple()
-        return tuple([
-            transition for transition in self.rules
-            if transition.from_state == self.current and transition.on_event == event
-        ])
+        return tuple(self._valid_transitions[self.current][event])
 
     def input(self, event: Enum|str) -> Enum|str:
         """Attempt to process an event, returning the resultant state."""
