@@ -190,10 +190,18 @@ class FSM:
 
     def touched(self) -> str:
         """Represent the state machine as a Flying Spaghetti Monster."""
+        left_eye = f"    [{self.previous}]"
+        space = "        "
+        right_eye = f"[{self.next}]"
+        left_stem = int((len(left_eye) - 4)/2) + 4
+        left_stem = "".join([" " for _ in range(left_stem)]) + '\\'
+        right_stem = int((len(right_eye) + len(left_eye) + len(space))/2)
+        right_stem = "".join([" " for _ in range(right_stem)]) + "/"
+        middle_space = "".join([" " for _ in range(len(left_stem) - 2)])
         return f"""\
-\t[{self.previous}]\t\t\t[{self.next}]
-\t   \\\t\t\t   /
-\t\t((({self.current})))
+{left_eye}{space}{right_eye}
+{left_stem}{right_stem}
+{middle_space}((({self.current})))
 {self._valid_transitions}
         s     s        s         s
        s        s     s            s
