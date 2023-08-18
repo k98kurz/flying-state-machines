@@ -169,13 +169,15 @@ class PastaMachine(FSM):
     initial_state = 'in a box'
 
 def status_hook(event, fsm):
-    print(event, fsm.current, fsm.next)
+    print([event, fsm.current, fsm.next])
 
 machine = PastaMachine()
 machine.add_event_hook('pour into pot', status_hook)
 state = machine.input('pour into pot')
 # console will show 'pour into pot', 'in a box', and 'is cooking'
+print(state, '==', machine.current)
 # state and machine.current will be 'is cooking'
+print(machine.next)
 # machine.next will be None
 
 
@@ -187,7 +189,9 @@ machine = PastaMachine()
 machine.add_event_hook('pour into pot', the_box_was_not_open)
 state = machine.input('pour into pot')
 # console will show 'you forgot to open the box'
+print(state, '==', machine.current)
 # state and machine.current will be 'in a box'
+print(machine.next)
 # machine.next will be 'is cooking', indicating an aborted state transition
 ```
 
