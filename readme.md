@@ -52,11 +52,11 @@ class Event(Enum):
 
 
 class Pastafarian(FSM):
+    initial_state = State.NORMAL_CLOTHES
     rules = set([
         Transition(State.NORMAL_CLOTHES, Event.IS_FRIDAY, State.PIRATE_CLOTHES),
         Transition(State.PIRATE_CLOTHES, Event.IS_NOT_FRIDAY, State.NORMAL_CLOTHES),
     ])
-    initial_state = State.NORMAL_CLOTHES
 ```
 
 This will represent the state of a Pastafarian. Events can be passed to the FSM,
@@ -65,9 +65,12 @@ either to cause a state transition or to see what state transitions are possible
 ```python
 me = Pastafarian()
 would = me.would(Event.IS_FRIDAY) # tuple with the Transition of putting on pirate regalia
+print(would)
 state = me.input(Event.IS_FRIDAY) # state is State.PIRATE_CLOTHES
+print(state)
 
 state = me.input('ate a hotdog') # state is still State.PIRATE_CLOTHES
+print(state) # State.PIRATE_CLOTHES
 print(me.current) # State.PIRATE_CLOTHES
 print(me.previous) # State.NORMAL_CLOTHES
 ```
@@ -93,6 +96,7 @@ class RussianRoulette(FSM):
 
 gun = RussianRoulette()
 state = gun.input('spin') # 1/6 chance of getting shot
+print(state)
 ```
 
 ### `Transition.to_any` and `Transition.from_any`
@@ -123,6 +127,7 @@ class Event(Enum):
     NORMALIZE = auto()
 
 class Machine(FSM):
+    initial_state = State.WAITING
     rules = set([
         Transition(State.WAITING, Event.CONTINUE, State.WAITING),
         Transition(State.WAITING, Event.START, State.GOING),
@@ -141,7 +146,6 @@ class Machine(FSM):
             State.SUPERPOSITION, Event.NORMALIZE, [State.WAITING, State.GOING]
         ),
     ])
-    initial_state = State.WAITING
 ```
 
 The above will create a FSM that will transition to either `SUPERPOSITION` or
@@ -223,10 +227,10 @@ check to ensure that the `Transition` supplied is within the FSM rules.
 following:
 
 ```
-        [None]                  [None]
-           \                       /
-                (((State.WAITING)))
-{<State.SUPERPOSITION: 4>: {<Event.QUANTUM_FOAM: 4>: {<State.NEITHER: 3>: 0.5, <State.SUPERPOSITION: 4>: 0.5}}, <State.WAITING: 1>: {<Event.START: 1>: {<State.GOING: 2>: 1.0}, <Event.CONTINUE: 3>: {<State.WAITING: 1>: 1.0}, <Event.QUANTUM_FOAM: 4>: {<State.SUPERPOSITION: 4>: 0.5, <State.NEITHER: 3>: 0.5}}, <State.NEITHER: 3>: {<Event.QUANTUM_FOAM: 4>: {<State.SUPERPOSITION: 4>: 0.5, <State.NEITHER: 3>: 0.5}}, <State.GOING: 2>: {<Event.QUANTUM_FOAM: 4>: {<State.SUPERPOSITION: 4>: 0.5, <State.NEITHER: 3>: 0.5}, <Event.CONTINUE: 3>: {<State.GOING: 2>: 1.0}, <Event.STOP: 2>: {<State.WAITING: 1>: 1.0}}}
+    [State.WAITING]        [None]
+           \                /
+          (((State.GOING)))
+{<State.GOING: 2>: {<Event.QUANTUM_FOAM: 4>: [(<State.GOING: 2>, <Event.QUANTUM_FOAM: 4>, <State.SUPERPOSITION: 4>, 0.5), (<State.GOING: 2>, <Event.QUANTUM_FOAM: 4>, <State.NEITHER: 3>, 0.5)], <Event.STOP: 2>: [(<State.GOING: 2>, <Event.STOP: 2>, <State.WAITING: 1>, 1.0)], <Event.CONTINUE: 3>: [(<State.GOING: 2>, <Event.CONTINUE: 3>, <State.GOING: 2>, 1.0)]}, <State.SUPERPOSITION: 4>: {<Event.NORMALIZE: 5>: [(<State.SUPERPOSITION: 4>, <Event.NORMALIZE: 5>, <State.WAITING: 1>, 0.5), (<State.SUPERPOSITION: 4>, <Event.NORMALIZE: 5>, <State.GOING: 2>, 0.5)], <Event.QUANTUM_FOAM: 4>: [(<State.SUPERPOSITION: 4>, <Event.QUANTUM_FOAM: 4>, <State.SUPERPOSITION: 4>, 0.5), (<State.SUPERPOSITION: 4>, <Event.QUANTUM_FOAM: 4>, <State.NEITHER: 3>, 0.5)]}, <State.WAITING: 1>: {<Event.QUANTUM_FOAM: 4>: [(<State.WAITING: 1>, <Event.QUANTUM_FOAM: 4>, <State.SUPERPOSITION: 4>, 0.5), (<State.WAITING: 1>, <Event.QUANTUM_FOAM: 4>, <State.NEITHER: 3>, 0.5)], <Event.START: 1>: [(<State.WAITING: 1>, <Event.START: 1>, <State.GOING: 2>, 1.0)], <Event.CONTINUE: 3>: [(<State.WAITING: 1>, <Event.CONTINUE: 3>, <State.WAITING: 1>, 1.0)]}, <State.NEITHER: 3>: {<Event.NORMALIZE: 5>: [(<State.NEITHER: 3>, <Event.NORMALIZE: 5>, <State.GOING: 2>, 0.5), (<State.NEITHER: 3>, <Event.NORMALIZE: 5>, <State.WAITING: 1>, 0.5)], <Event.QUANTUM_FOAM: 4>: [(<State.NEITHER: 3>, <Event.QUANTUM_FOAM: 4>, <State.NEITHER: 3>, 0.5), (<State.NEITHER: 3>, <Event.QUANTUM_FOAM: 4>, <State.SUPERPOSITION: 4>, 0.5)]}}
         s     s        s         s
        s        s     s            s
       s        s                  s
