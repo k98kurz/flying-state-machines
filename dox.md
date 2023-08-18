@@ -26,12 +26,12 @@ Removes a hook if it had been previously added.
 
 Triggers all hooks.
 
-##### `@classmethod from_any(from_states: type[Enum] | list[str], event: Enum | str, to_state: Enum | str) -> list[Transition]:`
+##### `@classmethod from_any(from_states: type[Enum] | list[str], event: Enum | str, to_state: Enum | str, probability: float) -> list[Transition]:`
 
 Makes a list of Transitions from any valid state to a specific state, each with
 the given probability.
 
-##### `@classmethod to_any(from_state: Enum | str, event: Enum | str, to_states: type[Enum] | list[str]) -> list[Transition]:`
+##### `@classmethod to_any(from_state: Enum | str, event: Enum | str, to_states: type[Enum] | list[str], total_probability: float) -> list[Transition]:`
 
 Makes a list of Transitions from a specific state to any valid state, with the
 given cumulative probability.
