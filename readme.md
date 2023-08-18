@@ -179,15 +179,15 @@ state = machine.input('pour into pot')
 # machine.next will be None
 
 
-def the_box_wasnt_open(event, fsm):
+def the_box_was_not_open(event, fsm):
     print('you forgot to open the box')
     return False
 
 machine = PastaMachine()
-machine.add_event_hook('pour into pot', the_box_wasnt_open)
+machine.add_event_hook('pour into pot', the_box_was_not_open)
 state = machine.input('pour into pot')
 # console will show 'you forgot to open the box'
-# state and machine.curent will be 'in a box'
+# state and machine.current will be 'in a box'
 # machine.next will be 'is cooking', indicating an aborted state transition
 ```
 
