@@ -172,12 +172,12 @@ class PastaMachine(FSM):
     ])
     initial_state = 'in a box'
 
-def status_hook(event, fsm):
-    print([event, fsm.current, fsm.next])
+def status_hook(event, fsm, data):
+    print([event, fsm.current, fsm.next, data])
 
 machine = PastaMachine()
 machine.add_event_hook('pour into pot', status_hook)
-state = machine.input('pour into pot')
+state = machine.input('pour into pot', 'optional event data of Any type goes here')
 # console will show 'pour into pot', 'in a box', and 'is cooking'
 print(state, '==', machine.current)
 # state and machine.current will be 'is cooking'
@@ -210,15 +210,17 @@ to interact with the process.
 machine = PastaMachine()
 transition = machine.would('pour into pot')[0]
 
-def transition_hook(transition):
-    print(f'{transition.from_state} => {transition.to_state}')
+def transition_hook(transition, data):
+    print(f'{transition.from_state} => {transition.to_state} with {data}')
 
 machine.add_transition_hook(transition, transition_hook)
 # semantically identical to transition.add_hook(transition_hook)
 ```
 
 One thing to note is that `FSM.add_transition_hook` will perform an additional
-check to ensure that the `Transition` supplied is within the FSM rules.
+check to ensure that the `Transition` supplied is within the FSM rules. Also
+note that transition hooks will be triggered with the same event data as the
+event hooks, which is passed in as an optional second argument for `FSM.input`.
 
 ### Serialization
 
