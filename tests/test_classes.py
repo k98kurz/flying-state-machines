@@ -1,6 +1,7 @@
 from context import classes
 from enum import Enum, auto
 from random import random
+from typing import Any
 import unittest
 
 
@@ -74,26 +75,31 @@ class TestTransition(unittest.TestCase):
 
     def test_Transition_hooks_e2e(self):
         transition = classes.Transition(State.WAITING, State.GOING, Event.START)
-        log = {'count': 0}
+        log = {'count': 0, 'data': []}
 
         with self.assertRaises(AssertionError) as e:
             transition.add_hook(1)
-        assert str(e.exception) == 'hook must be Callable[[Transition]]'
+        assert str(e.exception) == 'hook must be Callable[[Transition, Any]]'
 
         with self.assertRaises(AssertionError) as e:
             transition.remove_hook(1)
-        assert str(e.exception) == 'hook must be Callable[[Transition]]'
+        assert str(e.exception) == 'hook must be Callable[[Transition, Any]]'
 
-        def hook(tn):
+        def hook(tn, *args):
             log['count'] += 1
+            if len(args) and args[0] is not None:
+                log['data'].append(args[0])
         transition.add_hook(hook)
         transition.trigger()
         assert log['count'] == 1
-        transition.trigger()
+        assert len(log['data']) == 0
+        transition.trigger('some event data')
         assert log['count'] == 2
+        assert len(log['data']) == 1
         transition.remove_hook(hook)
-        transition.trigger()
+        transition.trigger('some event data')
         assert log['count'] == 2
+        assert len(log['data']) == 1
 
     def test_Transition_from_any_returns_list_of_Transition(self):
         tns = classes.Transition.from_any(
@@ -167,14 +173,16 @@ class TestFSM(unittest.TestCase):
     def test_FSM_subclass_event_hooks_fire_on_event(self):
         machine = Machine()
         log = {}
-        def hook(event, _):
+        def hook(event, *args):
             if event not in log:
                 log[event] = 0
+            if f"{event}_data" not in log:
+                log[f"{event}_data"] = [a for a in args if a is not None]
             log[event] += 1
 
         with self.assertRaises(AssertionError) as e:
             machine.add_event_hook(Event.START, 1)
-        assert str(e.exception) == 'hook must be Callable[[Enum|str, FSM], bool]'
+        assert str(e.exception) == 'hook must be Callable[[Enum|str, FSM, Any], bool]'
 
         machine.add_event_hook(Event.START, hook)
         machine.add_event_hook('fake event', hook)
@@ -182,10 +190,14 @@ class TestFSM(unittest.TestCase):
         assert 'fake event' not in log
         machine.input('fake event')
         assert 'fake event' in log and log['fake event'] == 1
+        assert 'fake event_data' in log and len(log['fake event_data']) == 1
 
         assert Event.START not in log
-        machine.input(Event.START)
+        machine.input(Event.START, 'some data')
         assert Event.START in log and log[Event.START] == 1
+        assert f"{Event.START}_data" in log \
+            and len(log[f"{Event.START}_data"]) == 2 \
+            and log[f"{Event.START}_data"][1] == 'some data'
         machine.input(Event.START)
         assert log[Event.START] == 2
         machine.remove_event_hook(Event.START, hook)
@@ -195,7 +207,7 @@ class TestFSM(unittest.TestCase):
     def test_FSM_subclass_event_hooks_can_cancel_Transition(self):
         machine = Machine()
         log = {}
-        def hook(event, _):
+        def hook(event, *args):
             if event not in log:
                 log[event] = 0
             log[event] += 1
@@ -210,7 +222,7 @@ class TestFSM(unittest.TestCase):
     def test_FSM_subclass_transition_hooks_e2e(self):
         machine = Machine()
         log = {}
-        def hook(transition):
+        def hook(transition, *args):
             if transition not in log:
                 log[transition] = 0
             log[transition] += 1

@@ -1,7 +1,7 @@
 from __future__ import annotations
 from enum import Enum
 from random import random
-from typing import Callable
+from typing import Any, Callable
 
 
 class Transition:
@@ -35,21 +35,21 @@ class Transition:
     def __repr__(self) -> str:
         return repr((self.from_state, self.on_event, self.to_state, self.probability))
 
-    def add_hook(self, hook: Callable[[Transition]]) -> None:
+    def add_hook(self, hook: Callable[[Transition, Any]]) -> None:
         """Adds a hook for when the Transition occurs."""
-        assert callable(hook), 'hook must be Callable[[Transition]]'
+        assert callable(hook), 'hook must be Callable[[Transition, Any]]'
         self.hooks.append(hook)
 
-    def remove_hook(self, hook: Callable[[Transition]]) -> None:
+    def remove_hook(self, hook: Callable[[Transition, Any]]) -> None:
         """Removes a hook if it had been previously added."""
-        assert callable(hook), 'hook must be Callable[[Transition]]'
+        assert callable(hook), 'hook must be Callable[[Transition, Any]]'
         if hook in self.hooks:
             self.hooks.remove(hook)
 
-    def trigger(self) -> None:
+    def trigger(self, data: Any = None) -> None:
         """Triggers all hooks."""
         for hook in self.hooks:
-            hook(self)
+            hook(self, data)
 
     @classmethod
     def from_any(cls, from_states: type[Enum]|list[str], event: Enum|str,
@@ -110,18 +110,20 @@ class FSM:
         self.next = None
         self._event_hooks = {}
 
-    def add_event_hook(self, event: Enum|str, hook: Callable[[Enum|str, FSM], bool]) -> None:
+    def add_event_hook(self, event: Enum|str,
+                       hook: Callable[[Enum|str, FSM, Any], bool]) -> None:
         """Adds a callback that fires before an event is processed. If
             any callback returns False, the event is cancelled.
         """
-        assert callable(hook), 'hook must be Callable[[Enum|str, FSM], bool]'
+        assert callable(hook), 'hook must be Callable[[Enum|str, FSM, Any], bool]'
         if event not in self._event_hooks:
             self._event_hooks[event] = []
         self._event_hooks[event].append(hook)
 
-    def remove_event_hook(self, event: Enum|str, hook: Callable[[Enum|str, FSM], bool]) -> None:
+    def remove_event_hook(self, event: Enum|str,
+                          hook: Callable[[Enum|str, FSM, Any], bool]) -> None:
         """Removes a callback that fires before an event is processed."""
-        assert callable(hook), 'hook must be Callable[[Enum|str, FSM], bool]'
+        assert callable(hook), 'hook must be Callable[[Enum|str, FSM, Any], bool]'
         if event not in self._event_hooks:
             return
         if hook in self._event_hooks[event]:
@@ -131,7 +133,7 @@ class FSM:
                             hook: Callable[[Transition]]) -> None:
         """Adds a callback that fires after a Transition occurs."""
         assert isinstance(transition, Transition), 'transition must be a Transition'
-        assert callable(hook), 'hook must be Callable[[Transition]]'
+        assert callable(hook), 'hook must be Callable[[Transition, Any]]'
         assert transition in self.rules, 'transition must be in self.rules'
         transition.add_hook(hook)
 
@@ -139,7 +141,7 @@ class FSM:
                             hook: Callable[[Transition]]) -> None:
         """Removes a callback that fires after a Transition occurs."""
         assert isinstance(transition, Transition), 'transition must be a Transition'
-        assert callable(hook), 'hook must be Callable[[Transition]]'
+        assert callable(hook), 'hook must be Callable[[Transition, Any]]'
         assert transition in self.rules, 'transition must be in self.rules'
         transition.remove_hook(hook)
 
@@ -152,7 +154,7 @@ class FSM:
             return tuple()
         return tuple(self._valid_transitions[self.current][event])
 
-    def input(self, event: Enum|str) -> Enum|str:
+    def input(self, event: Enum|str, data: Any = None) -> Enum|str:
         """Attempt to process an event, returning the resultant state."""
         possible_transitions = self.would(event)
         transition = None
@@ -175,7 +177,7 @@ class FSM:
         if event in self._event_hooks:
             canceled = False
             for hook in self._event_hooks[event]:
-                if hook(event, self) is False:
+                if hook(event, self, data) is False:
                     canceled = True
             if canceled:
                 return self.current
@@ -184,7 +186,7 @@ class FSM:
             self.previous = self.current
             self.current = self.next
             self.next = None
-            transition.trigger()
+            transition.trigger(data)
 
         return self.current
 
