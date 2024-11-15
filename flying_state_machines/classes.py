@@ -63,14 +63,13 @@ class Transition:
 
     @classmethod
     def unpack(cls, data: bytes, /, *, inject: dict = {},
-               hooks: list[Callable[[Transition]]] = None) -> Transition:
+               hooks: list[Callable[[Transition]]] = []) -> Transition:
         """Deserialize from bytes using packify. Inject dependencies
             as necessary, e.g. the Enum classes representing states or
             events.
         """
         dependencies = {**globals(), **inject}
         data = unpack(data, inject=dependencies)
-        hooks = hooks or []
         from_state = data['from_state']
         to_state = data['to_state']
         on_event = data['on_event']
@@ -345,5 +344,8 @@ class FSM:
         fsm.current = current
         fsm.previous = previous
         fsm.next = next
-        fsm._event_hooks = event_hooks
+        for event, hooks in event_hooks.items():
+            assert type(hooks) is list, 'event_hooks must be list[Callable]'
+            for hook in hooks:
+                fsm.add_event_hook(event, hook)
         return fsm
