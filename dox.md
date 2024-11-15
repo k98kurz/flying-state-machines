@@ -20,7 +20,7 @@
 
 Serialize to bytes using packify.
 
-##### `@classmethod unpack(data: bytes, hooks: list[Callable[[Transition]]] = None, inject: dict = {}) -> Transition:`
+##### `@classmethod unpack(data: bytes, /, *, hooks: list[Callable[[Transition]]] = [], inject: dict = {}) -> Transition:`
 
 Deserialize from bytes using packify. Inject dependencies as necessary, e.g. the
 Enum classes representing states or events.
@@ -97,5 +97,14 @@ Attempt to process an event, returning the resultant state.
 ##### `touched() -> str:`
 
 Represent the state machine as a Flying Spaghetti Monster.
+
+##### `pack() -> bytes:`
+
+Serialize to bytes using packify.
+
+##### `@classmethod unpack(data: bytes, /, *, event_hooks: dict[Enum | str, list[Callable[[Enum | str, FSM, Any], bool]]] = {}, transition_hooks: dict[Transition, list[Callable[[Transition]]]] = {}, inject: dict = {}) -> FSM:`
+
+Deserialize from bytes using packify. Inject dependencies as necessary, e.g. the
+Enum classes representing states or events.
 
 
