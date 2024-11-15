@@ -1,5 +1,6 @@
 from __future__ import annotations
 from enum import Enum
+from packify import pack, unpack
 from random import random
 from typing import Any, Callable
 
@@ -34,6 +35,64 @@ class Transition:
 
     def __repr__(self) -> str:
         return repr((self.from_state, self.on_event, self.to_state, self.probability))
+
+    def __bytes__(self) -> bytes:
+        """Serialize to bytes."""
+        return self.pack()
+
+    def pack(self) -> bytes:
+        """Serialize to bytes."""
+        if isinstance(self.from_state, Enum):
+            from_state = [type(self.from_state).__name__, self.from_state.value]
+        else:
+            from_state = self.from_state
+        if isinstance(self.to_state, Enum):
+            to_state = [type(self.to_state).__name__, self.to_state.value]
+        else:
+            to_state = self.to_state
+        if isinstance(self.on_event, Enum):
+            on_event = [type(self.on_event).__name__, self.on_event.value]
+        else:
+            on_event = self.on_event
+        return pack({
+            'from_state': from_state,
+            'to_state': to_state,
+            'on_event': on_event,
+            'probability': self.probability,
+        })
+
+    @classmethod
+    def unpack(
+        cls, data: bytes, hooks: list[Callable[[Transition]]] = None,
+        inject: dict = {}
+    ) -> Transition:
+        """Deserialize from bytes."""
+        dependencies = {**globals(), **inject}
+        data = unpack(data, inject=dependencies)
+        hooks = hooks or []
+        from_state = data['from_state']
+        to_state = data['to_state']
+        on_event = data['on_event']
+        if type(from_state) is list:
+            classname = from_state[0]
+            enumclass = dependencies[classname]
+            from_state = enumclass(from_state[1])
+        if type(to_state) is list:
+            classname = to_state[0]
+            enumclass = dependencies[classname]
+            to_state = enumclass(to_state[1])
+        if type(on_event) is list:
+            classname = on_event[0]
+            enumclass = dependencies[classname]
+            on_event = enumclass(on_event[1])
+
+        return cls(
+            from_state=from_state,
+            to_state=to_state,
+            on_event=on_event,
+            probability=data['probability'],
+            hooks=hooks,
+        )
 
     def add_hook(self, hook: Callable[[Transition, Any]]) -> None:
         """Adds a hook for when the Transition occurs."""
@@ -153,6 +212,12 @@ class FSM:
             event not in self._valid_transitions[self.current]:
             return tuple()
         return tuple(self._valid_transitions[self.current][event])
+
+    def can(self, event: Enum|str) -> bool:
+        """Given the current state of the machine and an event, return
+            whether the event can be processed.
+        """
+        return len(self.would(event)) > 0
 
     def input(self, event: Enum|str, data: Any = None) -> Enum|str:
         """Attempt to process an event, returning the resultant state."""

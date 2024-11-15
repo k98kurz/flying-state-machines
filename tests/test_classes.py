@@ -139,6 +139,17 @@ class TestTransition(unittest.TestCase):
             assert tn.from_state == 'SUPERPOSITION'
             assert tn.on_event == 'QUANTUM_FOAM'
 
+    def test_Transition_pack_and_unpack_e2e(self):
+        t = classes.Transition(State.WAITING, Event.CONTINUE, State.WAITING)
+        packed = t.pack()
+        assert type(packed) is bytes
+        unpacked = classes.Transition.unpack(packed, inject={
+            'State': State,
+            'Event': Event,
+        })
+        assert type(unpacked) is classes.Transition
+        assert hash(t) == hash(unpacked)
+
 
 class TestFSM(unittest.TestCase):
     def test_direct_FSM_initialization_raises_error(self):
@@ -162,6 +173,15 @@ class TestFSM(unittest.TestCase):
             assert isinstance(tn, classes.Transition)
 
         assert len(machine.would('random event')) == 0
+
+    def test_FSM_subclass_can_returns_bool_for_event(self):
+        machine = Machine()
+        assert machine.can(Event.START)
+        assert not machine.can('random event')
+        machine.input(Event.START)
+        assert not machine.can(Event.START)
+        assert machine.can(Event.CONTINUE)
+        assert machine.can(Event.STOP)
 
     def test_FSM_subclass_input_returns_state_after_Transition(self):
         machine = Machine()
