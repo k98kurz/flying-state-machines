@@ -306,7 +306,7 @@ class FSM:
 
     @classmethod
     def unpack(cls, data: bytes, /, *, inject: dict = {},
-               transition_hooks: dict[Transition, Callable[[Transition]]] = {},
+               transition_hooks: dict[Transition, list[Callable[[Transition]]]] = {},
                event_hooks: dict[Enum|str, list[Callable[[Enum|str, FSM, Any], bool]]] = {}
                ) -> FSM:
         """Deserialize from bytes using packify. Inject dependencies
@@ -316,8 +316,10 @@ class FSM:
         dependencies = {**globals(), **inject}
         data = unpack(data, inject=dependencies)
         fsm = cls()
-        for transition, hook in transition_hooks.items():
-            fsm.add_transition_hook(transition, hook)
+        for transition, hooks in transition_hooks.items():
+            assert type(hooks) is list, 'transition_hooks must be list[Callable]'
+            for hook in hooks:
+                fsm.add_transition_hook(transition, hook)
         initial_state = data['initial_state']
         current = data['current']
         previous = data['previous']
