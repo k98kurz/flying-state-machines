@@ -14,6 +14,17 @@
 
 #### Methods
 
+##### `__init__(from_state: Enum | str, on_event: Enum | str, to_state: Enum | str, probability: float = 1.0, hooks: list[Callable[[Transition]]] = []) -> None:`
+
+##### `pack() -> bytes:`
+
+Serialize to bytes using packify.
+
+##### `@classmethod unpack(data: bytes, hooks: list[Callable[[Transition]]] = None, inject: dict = {}) -> Transition:`
+
+Deserialize from bytes using packify. Inject dependencies as necessary, e.g. the
+Enum classes representing states or events.
+
 ##### `add_hook(hook: Callable[[Transition, Any]]) -> None:`
 
 Adds a hook for when the Transition occurs.
@@ -50,6 +61,8 @@ given cumulative probability.
 
 #### Methods
 
+##### `__init__() -> None:`
+
 ##### `add_event_hook(event: Enum | str, hook: Callable[[Enum | str, FSM, Any], bool]) -> None:`
 
 Adds a callback that fires before an event is processed. If any callback returns
@@ -71,6 +84,11 @@ Removes a callback that fires after a Transition occurs.
 
 Given the current state of the machine and an event, return a tuple of possible
 Transitions.
+
+##### `can(event: Enum | str) -> bool:`
+
+Given the current state of the machine and an event, return whether the event
+can be processed.
 
 ##### `input(event: Enum | str, data: Any = None) -> Enum | str:`
 

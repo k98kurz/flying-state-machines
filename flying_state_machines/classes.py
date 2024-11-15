@@ -41,7 +41,7 @@ class Transition:
         return self.pack()
 
     def pack(self) -> bytes:
-        """Serialize to bytes."""
+        """Serialize to bytes using packify."""
         if isinstance(self.from_state, Enum):
             from_state = [type(self.from_state).__name__, self.from_state.value]
         else:
@@ -66,7 +66,10 @@ class Transition:
         cls, data: bytes, hooks: list[Callable[[Transition]]] = None,
         inject: dict = {}
     ) -> Transition:
-        """Deserialize from bytes."""
+        """Deserialize from bytes using packify. Inject dependencies
+            as necessary, e.g. the Enum classes representing states or
+            events.
+        """
         dependencies = {**globals(), **inject}
         data = unpack(data, inject=dependencies)
         hooks = hooks or []
