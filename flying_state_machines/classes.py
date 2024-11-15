@@ -62,10 +62,8 @@ class Transition:
         })
 
     @classmethod
-    def unpack(
-        cls, data: bytes, hooks: list[Callable[[Transition]]] = None,
-        inject: dict = {}
-    ) -> Transition:
+    def unpack(cls, data: bytes, /, *, inject: dict = {},
+               hooks: list[Callable[[Transition]]] = None) -> Transition:
         """Deserialize from bytes using packify. Inject dependencies
             as necessary, e.g. the Enum classes representing states or
             events.
@@ -76,6 +74,7 @@ class Transition:
         from_state = data['from_state']
         to_state = data['to_state']
         on_event = data['on_event']
+
         if type(from_state) is list:
             classname = from_state[0]
             enumclass = dependencies[classname]
@@ -279,3 +278,72 @@ class FSM:
        s                            s
 
 ~Touched by His Noodly Appendage~"""
+
+    def pack(self) -> bytes:
+        """Serialize to bytes using packify."""
+        if isinstance(self.initial_state, Enum):
+            initial_state = [type(self.initial_state).__name__, self.initial_state.value]
+        else:
+            initial_state = self.initial_state
+        if isinstance(self.current, Enum):
+            current = [type(self.current).__name__, self.current.value]
+        else:
+            current = self.current
+        if isinstance(self.previous, Enum):
+            previous = [type(self.previous).__name__, self.previous.value]
+        else:
+            previous = self.previous
+        if isinstance(self.next, Enum):
+            next = [type(self.next).__name__, self.next.value]
+        else:
+            next = self.next
+        return pack({
+            'rules': {r.pack() for r in self.rules},
+            'initial_state': initial_state,
+            'current': current,
+            'previous': previous,
+            'next': next,
+        })
+
+    @classmethod
+    def unpack(cls, data: bytes, /, *, inject: dict = {},
+               transition_hooks: dict[Transition, Callable[[Transition]]] = {},
+               event_hooks: dict[Enum|str, list[Callable[[Enum|str, FSM, Any], bool]]] = {}
+               ) -> FSM:
+        """Deserialize from bytes using packify. Inject dependencies
+            as necessary, e.g. the Enum classes representing states or
+            events.
+        """
+        dependencies = {**globals(), **inject}
+        data = unpack(data, inject=dependencies)
+        fsm = cls()
+        for transition, hook in transition_hooks.items():
+            fsm.add_transition_hook(transition, hook)
+        initial_state = data['initial_state']
+        current = data['current']
+        previous = data['previous']
+        next = data['next']
+
+        if type(initial_state) is list:
+            classname = initial_state[0]
+            enumclass = dependencies[classname]
+            initial_state = enumclass(initial_state[1])
+        if type(current) is list:
+            classname = current[0]
+            enumclass = dependencies[classname]
+            current = enumclass(current[1])
+        if type(previous) is list:
+            classname = previous[0]
+            enumclass = dependencies[classname]
+            previous = enumclass(previous[1])
+        if type(next) is list:
+            classname = next[0]
+            enumclass = dependencies[classname]
+            next = enumclass(next[1])
+
+        fsm.initial_state = initial_state
+        fsm.current = current
+        fsm.previous = previous
+        fsm.next = next
+        fsm._event_hooks = event_hooks
+        return fsm

@@ -141,14 +141,24 @@ class TestTransition(unittest.TestCase):
 
     def test_Transition_pack_and_unpack_e2e(self):
         t = classes.Transition(State.WAITING, Event.CONTINUE, State.WAITING)
+        hooked = False
+        def hook(_tn, *_args):
+            nonlocal hooked
+            hooked = True
+            return True
+
+        t.add_hook(hook)
         packed = t.pack()
         assert type(packed) is bytes
         unpacked = classes.Transition.unpack(packed, inject={
             'State': State,
             'Event': Event,
-        })
+        }, hooks=[hook])
         assert type(unpacked) is classes.Transition
         assert hash(t) == hash(unpacked)
+        assert not hooked
+        unpacked.trigger()
+        assert hooked
 
 
 class TestFSM(unittest.TestCase):
@@ -286,6 +296,33 @@ class TestFSM(unittest.TestCase):
         assert waiting + going == 10
         assert waiting > 0
         assert going > 0
+
+    def test_FSM_pack_and_unpack_e2e(self):
+        machine = Machine()
+        hooked = False
+        def hook(_event, *_args):
+            nonlocal hooked
+            hooked = True
+            return True
+        machine.add_event_hook(Event.START, hook)
+        packed = machine.pack()
+        assert type(packed) is bytes
+        unpacked = Machine.unpack(packed, inject={
+            'State': State,
+            'Event': Event,
+        }, event_hooks={Event.START: [hook]})
+        assert type(unpacked) is Machine
+        assert machine.initial_state == unpacked.initial_state, \
+            (machine.initial_state, unpacked.initial_state)
+        assert machine.current == unpacked.current, \
+            (machine.current, unpacked.current)
+        assert machine.previous == unpacked.previous, \
+            (machine.previous, unpacked.previous)
+        assert machine.next == unpacked.next, \
+            (machine.next, unpacked.next)
+        assert not hooked
+        unpacked.input(Event.START)
+        assert hooked
 
     def test_FSM_subclass_touched_is_Flying_Spaghetti_monster_str(self):
         machine = Machine()
