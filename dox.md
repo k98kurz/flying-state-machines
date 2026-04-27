@@ -14,7 +14,7 @@
 
 #### Methods
 
-##### `__init__(from_state: Enum | str, on_event: Enum | str, to_state: Enum | str, probability: float = 1.0, hooks: list[Callable[[Transition]]] = []) -> None:`
+##### `__init__(from_state: Enum | str, on_event: Enum | str, to_state: Enum | str, probability: float = 1.0, hooks: list[Callable[[Transition]]] = None) -> None:`
 
 ##### `pack() -> bytes:`
 
@@ -106,5 +106,9 @@ Serialize to bytes using packify.
 
 Deserialize from bytes using packify. Inject dependencies as necessary, e.g. the
 Enum classes representing states or events.
+
+## Functions
+
+### `version() -> str:`
 
 

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "flying-state-machines"
-version = "0.2.0"
+version = "0.2.1"
 authors = [
   { name="k98kurz", email="k98kurz@gmail.com" },
 ]
@@ -24,5 +24,7 @@ dependencies = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/k98kurz/flying-state-machines"
+"Homepage" = "https://pycelium.com"
+"Repository" = "https://github.com/k98kurz/flying-state-machines"
 "Bug Tracker" = "https://github.com/k98kurz/flying-state-machines/issues"
+

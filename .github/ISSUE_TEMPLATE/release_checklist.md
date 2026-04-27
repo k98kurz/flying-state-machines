@@ -13,7 +13,7 @@ assignees: k98kurz
 
 Once all other issues are complete, prepare to release the next version.
 
-- [ ] Review and update docstringsi (`classes.py`)
+- [ ] Review and update docstrings (`classes.py`)
 - [ ] Update dox.md
 - [ ] Update readme.md
 - [ ] Update changelog.md
