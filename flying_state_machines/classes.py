@@ -6,16 +6,28 @@ from typing import Any, Callable
 
 
 class Transition:
+    """Represents a rule for transitioning between states within a
+        Finite State Machine. Specifies the states from and to which the
+        transition occurs, the event that triggers the transition, and
+        optionally the probability of the transition (for PFSMs/Markov
+        chains).
+    """
     from_state: Enum|str
     to_state: Enum|str
     on_event: Enum|str
     probability: float
-    hooks: list[Callable[[Transition]]]
+    hooks: list[Callable[[Transition, Any]]]
 
     def __init__(
             self, from_state: Enum|str, on_event: Enum|str, to_state: Enum|str,
-            probability: float = 1.0, hooks: list[Callable[[Transition]]] = None
+            probability: float = 1.0, hooks: list[Callable[[Transition, Any]]] = None
         ) -> None:
+        """Initializaton of a Transition instance performs an array of
+            sanity checks to ensure the library is being used properly.
+            Raises `AssertionError` if any necessary precondition check
+            fails, i.e. invalid `from_state`, `to_state`, `event`,
+            `probability`, or `hooks`.
+        """
         assert isinstance(from_state, Enum) or type(from_state) is str, \
             'from_state must be Enum or str'
         assert isinstance(to_state, Enum) or type(to_state) is str, \
@@ -67,7 +79,7 @@ class Transition:
     @classmethod
     def unpack(
             cls, data: bytes, /, *, inject: dict = {},
-            hooks: list[Callable[[Transition]]] = []
+            hooks: list[Callable[[Transition, Any]]] = []
         ) -> Transition:
         """Deserialize from bytes using packify. Inject dependencies
             as necessary, e.g. the Enum classes representing states or
@@ -101,7 +113,9 @@ class Transition:
         )
 
     def add_hook(self, hook: Callable[[Transition, Any]]) -> None:
-        """Adds a hook for when the Transition occurs."""
+        """Adds a hook for when the Transition occurs. Any data passed
+            to `trigger` will be passed to the hook.
+        """
         assert callable(hook), 'hook must be Callable[[Transition, Any]]'
         self.hooks.append(hook)
 
@@ -112,7 +126,7 @@ class Transition:
             self.hooks.remove(hook)
 
     def trigger(self, data: Any = None) -> None:
-        """Triggers all hooks."""
+        """Triggers all hooks with the given data."""
         for hook in self.hooks:
             hook(self, data)
 
@@ -145,6 +159,9 @@ class Transition:
 
 
 class FSM:
+    """Finite State Machine base. Should be used by subclassing with
+        `rules` and `initial_state` set as class attributes.
+    """
     rules: set[Transition]
     initial_state: Enum|str
     current: Enum|str
@@ -154,6 +171,13 @@ class FSM:
     _event_hooks: dict[Enum|str, list[Callable]]
 
     def __init__(self) -> None:
+        """Initialization of an FSM subclass instance performs an array
+            of sanity checks to ensure the library is being used
+            properly. Raises `AssertionError` if any necessary
+            precondition checks fail, e.g. invalid `rules` or
+            `initial_state`. Also processes `rules` to seed internal
+            structures to enable Markov chain behaviors.
+        """
         assert hasattr(self, 'rules'), 'self.rules must be set[Transition]'
         assert isinstance(self.rules, set), 'self.rules must be set[Transition]'
         self._valid_transitions = {}
@@ -202,16 +226,19 @@ class FSM:
             self._event_hooks[event].remove(hook)
 
     def add_transition_hook(
-            self, transition: Transition, hook: Callable[[Transition]]
+            self, transition: Transition, hook: Callable[[Transition, Any]]
         ) -> None:
-        """Adds a callback that fires after a Transition occurs."""
+        """Adds a callback that fires after a Transition occurs. Any
+            data passed to `input` will be passed to
+            `transition.trigger`, which will be passed to the hook.
+        """
         assert isinstance(transition, Transition), 'transition must be a Transition'
         assert callable(hook), 'hook must be Callable[[Transition, Any]]'
         assert transition in self.rules, 'transition must be in self.rules'
         transition.add_hook(hook)
 
     def remove_transition_hook(
-            self, transition: Transition, hook: Callable[[Transition]]
+            self, transition: Transition, hook: Callable[[Transition, Any]]
         ) -> None:
         """Removes a callback that fires after a Transition occurs."""
         assert isinstance(transition, Transition), 'transition must be a Transition'
@@ -325,7 +352,9 @@ class FSM:
     @classmethod
     def unpack(
             cls, data: bytes, /, *, inject: dict = {},
-            transition_hooks: dict[Transition, list[Callable[[Transition]]]] = {},
+            transition_hooks: dict[
+                Transition, list[Callable[[Transition, Any]]]
+            ] = {},
             event_hooks: dict[
                 Enum|str, list[Callable[[Enum|str, FSM, Any], bool]]
             ] = {}
