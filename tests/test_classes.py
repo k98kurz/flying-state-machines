@@ -160,6 +160,18 @@ class TestTransition(unittest.TestCase):
         unpacked.trigger()
         assert hooked
 
+    def test_Transition_hooks_are_not_shared(self):
+        t1 = classes.Transition(State.WAITING, Event.START, State.GOING)
+        t2 = classes.Transition(State.GOING, Event.STOP, State.WAITING)
+        assert t1.hooks is not t2.hooks
+
+        def hook1(_tn, *_args):
+            ...
+
+        t1.add_hook(hook1)
+        assert len(t1.hooks) == 1
+        assert len(t2.hooks) == 0
+
 
 class TestFSM(unittest.TestCase):
     def test_direct_FSM_initialization_raises_error(self):

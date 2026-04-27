@@ -12,8 +12,10 @@ class Transition:
     probability: float
     hooks: list[Callable[[Transition]]]
 
-    def __init__(self, from_state: Enum|str, on_event: Enum|str, to_state: Enum|str,
-                 probability: float = 1.0, hooks: list[Callable[[Transition]]] = []) -> None:
+    def __init__(
+            self, from_state: Enum|str, on_event: Enum|str, to_state: Enum|str,
+            probability: float = 1.0, hooks: list[Callable[[Transition]]] = None
+        ) -> None:
         assert isinstance(from_state, Enum) or type(from_state) is str, \
             'from_state must be Enum or str'
         assert isinstance(to_state, Enum) or type(to_state) is str, \
@@ -21,6 +23,7 @@ class Transition:
         assert isinstance(on_event, Enum) or type(on_event) is str, \
             'on_event must be Enum or str'
         assert type(probability) is float, 'probability must be float'
+        hooks = hooks or []
         for hook in hooks:
             assert callable(hook), 'each hook must be callable'
         self.from_state = from_state
@@ -62,8 +65,10 @@ class Transition:
         })
 
     @classmethod
-    def unpack(cls, data: bytes, /, *, inject: dict = {},
-               hooks: list[Callable[[Transition]]] = []) -> Transition:
+    def unpack(
+            cls, data: bytes, /, *, inject: dict = {},
+            hooks: list[Callable[[Transition]]] = []
+        ) -> Transition:
         """Deserialize from bytes using packify. Inject dependencies
             as necessary, e.g. the Enum classes representing states or
             events.
@@ -112,8 +117,10 @@ class Transition:
             hook(self, data)
 
     @classmethod
-    def from_any(cls, from_states: type[Enum]|list[str], event: Enum|str,
-                 to_state: Enum|str, probability: float = 1.0) -> list[Transition]:
+    def from_any(
+            cls, from_states: type[Enum]|list[str], event: Enum|str,
+            to_state: Enum|str, probability: float = 1.0
+        ) -> list[Transition]:
         """Makes a list of Transitions from any valid state to a
             specific state, each with the given probability.
         """
@@ -123,9 +130,10 @@ class Transition:
         ]
 
     @classmethod
-    def to_any(cls, from_state: Enum|str, event: Enum|str,
-               to_states: type[Enum]|list[str],
-               total_probability: float = 1.0) -> list[Transition]:
+    def to_any(
+            cls, from_state: Enum|str, event: Enum|str,
+            to_states: type[Enum]|list[str], total_probability: float = 1.0
+        ) -> list[Transition]:
         """Makes a list of Transitions from a specific state to any
             valid state, with the given cumulative probability.
         """
@@ -161,17 +169,20 @@ class FSM:
             for on_event in self._valid_transitions[from_state]:
                 transitions = self._valid_transitions[from_state][on_event]
                 total_probability = sum([r.probability for r in transitions])
-                assert total_probability <= 1.0, \
-                    'total probability for state transitions must be <= 1.0'
-        assert isinstance(self.initial_state, Enum) or type(self.initial_state) is str, \
-            'self.initial_state must be Enum or str'
+                assert total_probability <= 1.0, (
+                    'total probability for state transitions must be <= 1.0')
+        assert  (   isinstance(self.initial_state, Enum)
+                    or type(self.initial_state) is str
+                ), 'self.initial_state must be Enum or str'
         self.current = self.initial_state
         self.previous = None
         self.next = None
         self._event_hooks = {}
 
-    def add_event_hook(self, event: Enum|str,
-                       hook: Callable[[Enum|str, FSM, Any], bool]) -> None:
+    def add_event_hook(
+            self, event: Enum|str,
+            hook: Callable[[Enum|str, FSM, Any], bool]
+        ) -> None:
         """Adds a callback that fires before an event is processed. If
             any callback returns False, the event is cancelled.
         """
@@ -180,8 +191,9 @@ class FSM:
             self._event_hooks[event] = []
         self._event_hooks[event].append(hook)
 
-    def remove_event_hook(self, event: Enum|str,
-                          hook: Callable[[Enum|str, FSM, Any], bool]) -> None:
+    def remove_event_hook(
+            self, event: Enum|str, hook: Callable[[Enum|str, FSM, Any], bool]
+        ) -> None:
         """Removes a callback that fires before an event is processed."""
         assert callable(hook), 'hook must be Callable[[Enum|str, FSM, Any], bool]'
         if event not in self._event_hooks:
@@ -189,16 +201,18 @@ class FSM:
         if hook in self._event_hooks[event]:
             self._event_hooks[event].remove(hook)
 
-    def add_transition_hook(self, transition: Transition,
-                            hook: Callable[[Transition]]) -> None:
+    def add_transition_hook(
+            self, transition: Transition, hook: Callable[[Transition]]
+        ) -> None:
         """Adds a callback that fires after a Transition occurs."""
         assert isinstance(transition, Transition), 'transition must be a Transition'
         assert callable(hook), 'hook must be Callable[[Transition, Any]]'
         assert transition in self.rules, 'transition must be in self.rules'
         transition.add_hook(hook)
 
-    def remove_transition_hook(self, transition: Transition,
-                            hook: Callable[[Transition]]) -> None:
+    def remove_transition_hook(
+            self, transition: Transition, hook: Callable[[Transition]]
+        ) -> None:
         """Removes a callback that fires after a Transition occurs."""
         assert isinstance(transition, Transition), 'transition must be a Transition'
         assert callable(hook), 'hook must be Callable[[Transition, Any]]'
@@ -209,8 +223,9 @@ class FSM:
         """Given the current state of the machine and an event, return a
             tuple of possible Transitions.
         """
-        if self.current not in self._valid_transitions or \
-            event not in self._valid_transitions[self.current]:
+        if  (   self.current not in self._valid_transitions
+                or event not in self._valid_transitions[self.current]
+            ):
             return tuple()
         return tuple(self._valid_transitions[self.current][event])
 
@@ -281,7 +296,10 @@ class FSM:
     def pack(self) -> bytes:
         """Serialize to bytes using packify."""
         if isinstance(self.initial_state, Enum):
-            initial_state = [type(self.initial_state).__name__, self.initial_state.value]
+            initial_state = [
+                type(self.initial_state).__name__,
+                self.initial_state.value
+            ]
         else:
             initial_state = self.initial_state
         if isinstance(self.current, Enum):
@@ -305,10 +323,13 @@ class FSM:
         })
 
     @classmethod
-    def unpack(cls, data: bytes, /, *, inject: dict = {},
-               transition_hooks: dict[Transition, list[Callable[[Transition]]]] = {},
-               event_hooks: dict[Enum|str, list[Callable[[Enum|str, FSM, Any], bool]]] = {}
-               ) -> FSM:
+    def unpack(
+            cls, data: bytes, /, *, inject: dict = {},
+            transition_hooks: dict[Transition, list[Callable[[Transition]]]] = {},
+            event_hooks: dict[
+                Enum|str, list[Callable[[Enum|str, FSM, Any], bool]]
+            ] = {}
+        ) -> FSM:
         """Deserialize from bytes using packify. Inject dependencies
             as necessary, e.g. the Enum classes representing states or
             events.
