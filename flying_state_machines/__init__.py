@@ -1,3 +1,2 @@
 from .classes import Transition, FSM
-
-__version__ = '0.2.0'
+from .version import __version__, version
