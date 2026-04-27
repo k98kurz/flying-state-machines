@@ -4,30 +4,41 @@
 
 ### `Transition`
 
+Represents a rule for transitioning between states within a Finite State
+Machine. Specifies the states from and to which the transition occurs, the event
+that triggers the transition, and optionally the probability of the transition
+(for PFSMs/Markov chains).
+
 #### Annotations
 
 - from_state: Enum | str
 - to_state: Enum | str
 - on_event: Enum | str
 - probability: float
-- hooks: list[Callable[[Transition]]]
+- hooks: list[Callable[[Transition, Any]]]
 
 #### Methods
 
-##### `__init__(from_state: Enum | str, on_event: Enum | str, to_state: Enum | str, probability: float = 1.0, hooks: list[Callable[[Transition]]] = None) -> None:`
+##### `__init__(from_state: Enum | str, on_event: Enum | str, to_state: Enum | str, probability: float = 1.0, hooks: list[Callable[[Transition, Any]]] = None) -> None:`
+
+Initializaton of a Transition instance performs an array of sanity checks to
+ensure the library is being used properly. Raises `AssertionError` if any
+necessary precondition check fails, i.e. invalid `from_state`, `to_state`,
+`event`, `probability`, or `hooks`.
 
 ##### `pack() -> bytes:`
 
 Serialize to bytes using packify.
 
-##### `@classmethod unpack(data: bytes, /, *, hooks: list[Callable[[Transition]]] = [], inject: dict = {}) -> Transition:`
+##### `@classmethod unpack(data: bytes, /, *, hooks: list[Callable[[Transition, Any]]] = [], inject: dict = {}) -> Transition:`
 
 Deserialize from bytes using packify. Inject dependencies as necessary, e.g. the
 Enum classes representing states or events.
 
 ##### `add_hook(hook: Callable[[Transition, Any]]) -> None:`
 
-Adds a hook for when the Transition occurs.
+Adds a hook for when the Transition occurs. Any data passed to `trigger` will be
+passed to the hook.
 
 ##### `remove_hook(hook: Callable[[Transition, Any]]) -> None:`
 
@@ -35,7 +46,7 @@ Removes a hook if it had been previously added.
 
 ##### `trigger(data: Any = None) -> None:`
 
-Triggers all hooks.
+Triggers all hooks with the given data.
 
 ##### `@classmethod from_any(from_states: type[Enum] | list[str], event: Enum | str, to_state: Enum | str, probability: float = 1.0) -> list[Transition]:`
 
@@ -48,6 +59,9 @@ Makes a list of Transitions from a specific state to any valid state, with the
 given cumulative probability.
 
 ### `FSM`
+
+Finite State Machine base. Should be used by subclassing with `rules` and
+`initial_state` set as class attributes.
 
 #### Annotations
 
@@ -63,6 +77,12 @@ given cumulative probability.
 
 ##### `__init__() -> None:`
 
+Initialization of an FSM subclass instance performs an array of sanity checks to
+ensure the library is being used properly. Raises `AssertionError` if any
+necessary precondition checks fail, e.g. invalid `rules` or `initial_state`.
+Also processes `rules` to seed internal structures to enable Markov chain
+behaviors.
+
 ##### `add_event_hook(event: Enum | str, hook: Callable[[Enum | str, FSM, Any], bool]) -> None:`
 
 Adds a callback that fires before an event is processed. If any callback returns
@@ -72,11 +92,12 @@ False, the event is cancelled.
 
 Removes a callback that fires before an event is processed.
 
-##### `add_transition_hook(transition: Transition, hook: Callable[[Transition]]) -> None:`
+##### `add_transition_hook(transition: Transition, hook: Callable[[Transition, Any]]) -> None:`
 
-Adds a callback that fires after a Transition occurs.
+Adds a callback that fires after a Transition occurs. Any data passed to `input`
+will be passed to `transition.trigger`, which will be passed to the hook.
 
-##### `remove_transition_hook(transition: Transition, hook: Callable[[Transition]]) -> None:`
+##### `remove_transition_hook(transition: Transition, hook: Callable[[Transition, Any]]) -> None:`
 
 Removes a callback that fires after a Transition occurs.
 
@@ -102,7 +123,7 @@ Represent the state machine as a Flying Spaghetti Monster.
 
 Serialize to bytes using packify.
 
-##### `@classmethod unpack(data: bytes, /, *, event_hooks: dict[Enum | str, list[Callable[[Enum | str, FSM, Any], bool]]] = {}, transition_hooks: dict[Transition, list[Callable[[Transition]]]] = {}, inject: dict = {}) -> FSM:`
+##### `@classmethod unpack(data: bytes, /, *, event_hooks: dict[Enum | str, list[Callable[[Enum | str, FSM, Any], bool]]] = {}, transition_hooks: dict[Transition, list[Callable[[Transition, Any]]]] = {}, inject: dict = {}) -> FSM:`
 
 Deserialize from bytes using packify. Inject dependencies as necessary, e.g. the
 Enum classes representing states or events.
