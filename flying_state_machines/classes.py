@@ -142,7 +142,7 @@ class Transition:
     @classmethod
     def from_any(
             cls, from_states: type[Enum]|list[str], event: Enum|str,
-            to_state: Enum|str, probability: float = 1.0
+            to_state: Enum|str, probability: float | Callable[[dict], float] = 1.0
         ) -> list[Transition]:
         """Makes a list of Transitions from any valid state to a
             specific state, each with the given probability.
@@ -155,12 +155,18 @@ class Transition:
     @classmethod
     def to_any(
             cls, from_state: Enum|str, event: Enum|str,
-            to_states: type[Enum]|list[str], total_probability: float = 1.0
+            to_states: type[Enum]|list[str],
+            total_probability: float | Callable[[dict], float] = 1.0
         ) -> list[Transition]:
         """Makes a list of Transitions from a specific state to any
-            valid state, with the given cumulative probability.
+            valid state, with the given cumulative probability if
+            `total_probability` is a float or with `total_probability`
+            assigned to each Transition if it is callable.
         """
-        probability = total_probability / len(to_states)
+        if callable(total_probability):
+            probability = total_probability
+        else:
+            probability = total_probability / len(to_states)
         return [
             cls(from_state, event, state, probability)
             for state in to_states

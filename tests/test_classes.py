@@ -152,13 +152,15 @@ class TestTransition(unittest.TestCase):
 
     def test_Transition_to_any_returns_list_of_Transition(self):
         tns = classes.Transition.to_any(
-            State.SUPERPOSITION, Event.QUANTUM_FOAM, State
+            State.SUPERPOSITION, Event.QUANTUM_FOAM, State, 0.8
         )
         assert type(tns) is list
         for tn in tns:
             assert isinstance(tn, classes.Transition)
             assert tn.from_state is State.SUPERPOSITION
             assert tn.on_event is Event.QUANTUM_FOAM
+            assert tn.probability == 0.2, (
+                f'total_probability should be split evenly; 0.2 != {tn.probability}')
 
         tns = classes.Transition.to_any(
             "SUPERPOSITION", "QUANTUM_FOAM", ["GOING", "GONE"]
@@ -168,6 +170,45 @@ class TestTransition(unittest.TestCase):
             assert isinstance(tn, classes.Transition)
             assert tn.from_state == 'SUPERPOSITION'
             assert tn.on_event == 'QUANTUM_FOAM'
+
+    def test_Transition_from_any_with_callable_probability(self):
+        def ctx_based_prob(ctx):
+            return 1.0 if ctx.get('condition', False) else 0.5
+
+        tns = classes.Transition.from_any(
+            ['idle', 'active'], 'event', 'result_state',
+            probability=ctx_based_prob
+        )
+
+        assert type(tns) is list
+        assert len(tns) == 2
+
+        for tn in tns:
+            assert isinstance(tn, classes.Transition)
+            assert callable(tn.probability)
+            assert tn.to_state == 'result_state'
+            assert tn.on_event == 'event'
+            assert tn.probability({'condition': True}) == 1.0
+            assert tn.probability({'condition': False}) == 0.5
+
+    def test_Transition_to_any_with_callable_probability(self):
+        def dynamic_prob(ctx):
+            return ctx.get('energy', 0.0)
+
+        tns = classes.Transition.to_any(
+            'start', 'trigger', ['state_a', 'state_b', 'state_c'],
+            total_probability=dynamic_prob
+        )
+
+        assert type(tns) is list
+        assert len(tns) == 3
+
+        for tn in tns:
+            assert isinstance(tn, classes.Transition)
+            assert callable(tn.probability)
+            assert tn.from_state == 'start'
+            assert tn.on_event == 'trigger'
+            assert tn.probability({'energy': 0.8}) == 0.8
 
     def test_Transition_pack_and_unpack_e2e(self):
         t = classes.Transition(State.WAITING, Event.CONTINUE, State.WAITING)
