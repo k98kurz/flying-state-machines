@@ -73,6 +73,20 @@ class TestTransition(unittest.TestCase):
         tn2 = classes.Transition(State.GOING, State.WAITING, Event.STOP)
         assert hash(tn1) != hash(tn2)
 
+    def test_Transition_callable_probability_evaluates_with_context(self):
+        def weight_based_probability(ctx):
+            return ctx.get('weight', 0.5)
+
+        transition = classes.Transition(
+            'patrol', 'see_enemy', 'hunt', probability=weight_based_probability
+        )
+
+        assert callable(transition.probability)
+        assert transition.probability({'weight': 1.0}) == 1.0
+        assert transition.probability({'weight': 0.0}) == 0.0
+        assert transition.probability({'weight': 0.75}) == 0.75
+        assert transition.probability({}) == 0.5
+
     def test_Transition_hooks_e2e(self):
         transition = classes.Transition(State.WAITING, State.GOING, Event.START)
         log = {'count': 0, 'data': []}
@@ -100,6 +114,22 @@ class TestTransition(unittest.TestCase):
         transition.trigger('some event data')
         assert log['count'] == 2
         assert len(log['data']) == 1
+
+    def test_transition_hooks_receive_context(self):
+        t = classes.Transition('patrol', 'see_enemy', 'hunt')
+        captured = {'context': None, 'data': None}
+
+        def hook(transition, context, data):
+            captured['context'] = context
+            captured['data'] = data
+
+        t.add_hook(hook)
+
+        test_context = {'key': 'value', 'hunger': True}
+        t.trigger(test_context, 'event_data')
+
+        assert captured['context'] == test_context
+        assert captured['data'] == 'event_data'
 
     def test_Transition_from_any_returns_list_of_Transition(self):
         tns = classes.Transition.from_any(
@@ -160,6 +190,28 @@ class TestTransition(unittest.TestCase):
         unpacked.trigger()
         assert hooked
 
+        def energy_based_probability(ctx):
+            return ctx.get('energy', 0.5)
+
+        transition_with_callable = classes.Transition(
+            'resting', 'wake_up', 'active',
+            probability=energy_based_probability
+        )
+
+        packed = transition_with_callable.pack()
+        assert type(packed) is bytes
+
+        unpacked = classes.Transition.unpack(
+            packed, inject={
+                'energy_based_probability': energy_based_probability,
+            }, hooks=[]
+        )
+
+        assert type(unpacked) is classes.Transition
+        assert hash(transition_with_callable) == hash(unpacked)
+        assert callable(unpacked.probability)
+        assert unpacked.probability({'energy': 0.8}) == 0.8
+
     def test_Transition_hooks_are_not_shared(self):
         t1 = classes.Transition(State.WAITING, Event.START, State.GOING)
         t2 = classes.Transition(State.GOING, Event.STOP, State.WAITING)
@@ -211,6 +263,44 @@ class TestFSM(unittest.TestCase):
         res = machine.input(Event.START)
         assert machine.current is State.GOING
         assert res is machine.current
+
+    def test_FSM_dynamic_probabilities_with_context(self):
+        def attack_when_strong(ctx):
+            return 1.0 if ctx['strength'] else 0.0
+
+        def retreat_when_weak(ctx):
+            return 0.0 if ctx['strength'] else 1.0
+
+        class GuardFSM(classes.FSM):
+            rules = set([
+                classes.Transition(
+                    'patrol', 'see_enemy', 'attack', probability=attack_when_strong
+                ),
+                classes.Transition(
+                    'patrol', 'see_enemy', 'retreat', probability=retreat_when_weak
+                ),
+            ])
+            initial_state = 'patrol'
+
+        strong_guard = GuardFSM(context={'strength': True})
+        for _ in range(5):
+            strong_guard.current = 'patrol'
+            result = strong_guard.input('see_enemy')
+            assert result == 'attack'
+            assert strong_guard.current == 'attack'
+
+        weak_guard = GuardFSM(context={'strength': False})
+        for _ in range(5):
+            weak_guard.current = 'patrol'
+            result = weak_guard.input('see_enemy')
+            assert result == 'retreat'
+            assert weak_guard.current == 'retreat'
+
+        strong_guard.context = {'strength': False}
+        for _ in range(5):
+            strong_guard.current = 'patrol'
+            result = strong_guard.input('see_enemy')
+            assert result == 'retreat'
 
     def test_FSM_subclass_event_hooks_fire_on_event(self):
         machine = Machine()
@@ -281,6 +371,23 @@ class TestFSM(unittest.TestCase):
         machine.input(Event.START)
         assert log[tn] == 1
 
+    def test_transition_hooks_receive_context(self):
+        machine = Machine()
+        captured = {'context': None, 'data': None}
+
+        def hook(transition, context, data):
+            captured['context'] = context
+            captured['data'] = data
+
+        transition = machine.would(Event.START)[0]
+        machine.add_transition_hook(transition, hook)
+
+        machine.context = {'key': 'value', 'hunger': True}
+        machine.input(Event.START, 'event_data')
+
+        assert captured['context'] == machine.context
+        assert captured['data'] == 'event_data'
+
     def test_FSM_subclass_random_transitions(self):
         machine = Machine()
         superposition, neither = 0, 0
@@ -335,6 +442,15 @@ class TestFSM(unittest.TestCase):
         assert not hooked
         unpacked.input(Event.START)
         assert hooked
+
+        machine_with_context = Machine(context={'hunger': 0.7, 'energy': 0.5})
+        packed = machine_with_context.pack()
+        unpacked = Machine.unpack(packed, inject={
+            'State': State,
+            'Event': Event,
+        })
+        assert unpacked.context == {'hunger': 0.7, 'energy': 0.5}
+        assert unpacked.initial_state == machine_with_context.initial_state
 
     def test_FSM_subclass_touched_is_Flying_Spaghetti_monster_str(self):
         machine = Machine()
