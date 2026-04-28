@@ -79,11 +79,11 @@ class TestTransition(unittest.TestCase):
 
         with self.assertRaises(AssertionError) as e:
             transition.add_hook(1)
-        assert str(e.exception) == 'hook must be Callable[[Transition, Any]]'
+        assert str(e.exception) == 'hook must be Callable[[Transition, dict, Any]]'
 
         with self.assertRaises(AssertionError) as e:
             transition.remove_hook(1)
-        assert str(e.exception) == 'hook must be Callable[[Transition, Any]]'
+        assert str(e.exception) == 'hook must be Callable[[Transition, dict, Any]]'
 
         def hook(tn, *args):
             log['count'] += 1

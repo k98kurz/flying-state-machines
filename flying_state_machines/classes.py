@@ -10,17 +10,19 @@ class Transition:
         Finite State Machine. Specifies the states from and to which the
         transition occurs, the event that triggers the transition, and
         optionally the probability of the transition (for PFSMs/Markov
-        chains).
+        chains). Probabilities can be static floats or determined
+        dynamically by a callback that accepts a context dict.
     """
     from_state: Enum|str
     to_state: Enum|str
     on_event: Enum|str
-    probability: float
+    probability: float|Callable[[dict], float]
     hooks: list[Callable[[Transition, Any]]]
 
     def __init__(
             self, from_state: Enum|str, on_event: Enum|str, to_state: Enum|str,
-            probability: float = 1.0, hooks: list[Callable[[Transition, Any]]] = None
+            probability: float | Callable[[dict], float] = 1.0,
+            hooks: list[Callable[[Transition, Any]]] = None
         ) -> None:
         """Initializaton of a Transition instance performs an array of
             sanity checks to ensure the library is being used properly.
@@ -34,7 +36,9 @@ class Transition:
             'to_state must be Enum or str'
         assert isinstance(on_event, Enum) or type(on_event) is str, \
             'on_event must be Enum or str'
-        assert type(probability) is float, 'probability must be float'
+        assert  (   type(probability) is float
+                    or callable(probability)
+                ), 'probability must be float | Callable[[dict], float]'
         hooks = hooks or []
         for hook in hooks:
             assert callable(hook), 'each hook must be callable'
@@ -49,6 +53,7 @@ class Transition:
         return hash((self.from_state, self.to_state, self.on_event))
 
     def __repr__(self) -> str:
+        """Produce a string representation."""
         return repr((self.from_state, self.on_event, self.to_state, self.probability))
 
     def __bytes__(self) -> bytes:
@@ -57,23 +62,23 @@ class Transition:
 
     def pack(self) -> bytes:
         """Serialize to bytes using packify."""
-        if isinstance(self.from_state, Enum):
-            from_state = [type(self.from_state).__name__, self.from_state.value]
-        else:
-            from_state = self.from_state
-        if isinstance(self.to_state, Enum):
-            to_state = [type(self.to_state).__name__, self.to_state.value]
-        else:
-            to_state = self.to_state
-        if isinstance(self.on_event, Enum):
-            on_event = [type(self.on_event).__name__, self.on_event.value]
-        else:
-            on_event = self.on_event
+        from_state = self.from_state
+        to_state = self.to_state
+        on_event = self.on_event
+        probability = self.probability
+        if isinstance(from_state, Enum):
+            from_state = [type(from_state).__name__, from_state.value]
+        if isinstance(to_state, Enum):
+            to_state = [type(to_state).__name__, to_state.value]
+        if isinstance(on_event, Enum):
+            on_event = [type(on_event).__name__, on_event.value]
+        if callable(probability):
+            probability = probability.__name__
         return pack({
             'from_state': from_state,
             'to_state': to_state,
             'on_event': on_event,
-            'probability': self.probability,
+            'probability': probability,
         })
 
     @classmethod
@@ -90,6 +95,7 @@ class Transition:
         from_state = data['from_state']
         to_state = data['to_state']
         on_event = data['on_event']
+        probability = data['probability']
 
         if type(from_state) is list:
             classname = from_state[0]
@@ -103,32 +109,35 @@ class Transition:
             classname = on_event[0]
             enumclass = dependencies[classname]
             on_event = enumclass(on_event[1])
+        if type(probability) is str:
+            probability = dependencies.get(probability)
+            assert callable(probability)
 
         return cls(
             from_state=from_state,
             to_state=to_state,
             on_event=on_event,
-            probability=data['probability'],
+            probability=probability,
             hooks=hooks,
         )
 
-    def add_hook(self, hook: Callable[[Transition, Any]]) -> None:
-        """Adds a hook for when the Transition occurs. Any data passed
-            to `trigger` will be passed to the hook.
+    def add_hook(self, hook: Callable[[Transition, dict, Any]]) -> None:
+        """Adds a hook for when the Transition occurs. Any context and
+            data passed to `trigger` will be passed to the hook.
         """
-        assert callable(hook), 'hook must be Callable[[Transition, Any]]'
+        assert callable(hook), 'hook must be Callable[[Transition, dict, Any]]'
         self.hooks.append(hook)
 
-    def remove_hook(self, hook: Callable[[Transition, Any]]) -> None:
+    def remove_hook(self, hook: Callable[[Transition, dict, Any]]) -> None:
         """Removes a hook if it had been previously added."""
-        assert callable(hook), 'hook must be Callable[[Transition, Any]]'
+        assert callable(hook), 'hook must be Callable[[Transition, dict, Any]]'
         if hook in self.hooks:
             self.hooks.remove(hook)
 
-    def trigger(self, data: Any = None) -> None:
-        """Triggers all hooks with the given data."""
+    def trigger(self, context: dict = None, data: Any = None) -> None:
+        """Triggers all hooks with the given context and data."""
         for hook in self.hooks:
-            hook(self, data)
+            hook(self, context, data)
 
     @classmethod
     def from_any(
@@ -167,16 +176,19 @@ class FSM:
     current: Enum|str
     previous: Enum|str|None
     next: Enum|str|None
+    context: dict
     _valid_transitions: dict[Enum|str, dict[Enum|str, list[Transition]]]
     _event_hooks: dict[Enum|str, list[Callable]]
 
-    def __init__(self) -> None:
+    def __init__(self, context: dict = None) -> None:
         """Initialization of an FSM subclass instance performs an array
             of sanity checks to ensure the library is being used
             properly. Raises `AssertionError` if any necessary
             precondition checks fail, e.g. invalid `rules` or
             `initial_state`. Also processes `rules` to seed internal
-            structures to enable Markov chain behaviors.
+            structures to enable Markov chain behaviors. Accepts an
+            optional `context` dict that is passed to transition hooks
+            and any callable `transition.probability`.
         """
         assert hasattr(self, 'rules'), 'self.rules must be set[Transition]'
         assert isinstance(self.rules, set), 'self.rules must be set[Transition]'
@@ -192,16 +204,23 @@ class FSM:
         for from_state in self._valid_transitions:
             for on_event in self._valid_transitions[from_state]:
                 transitions = self._valid_transitions[from_state][on_event]
-                total_probability = sum([r.probability for r in transitions])
+                total_probability = sum([
+                    0 if callable(r.probability) else r.probability
+                    for r in transitions
+                ])
                 assert total_probability <= 1.0, (
                     'total probability for state transitions must be <= 1.0')
         assert  (   isinstance(self.initial_state, Enum)
                     or type(self.initial_state) is str
                 ), 'self.initial_state must be Enum or str'
+        assert  (   isinstance(context, dict)
+                    or context is None
+                ), 'context must be dict'
         self.current = self.initial_state
         self.previous = None
         self.next = None
         self._event_hooks = {}
+        self.context = context or {}
 
     def add_event_hook(
             self, event: Enum|str,
@@ -226,23 +245,23 @@ class FSM:
             self._event_hooks[event].remove(hook)
 
     def add_transition_hook(
-            self, transition: Transition, hook: Callable[[Transition, Any]]
+            self, transition: Transition, hook: Callable[[Transition, dict, Any]]
         ) -> None:
-        """Adds a callback that fires after a Transition occurs. Any
-            data passed to `input` will be passed to
-            `transition.trigger`, which will be passed to the hook.
+        """Adds a callback that fires after a Transition occurs.
+            `self.context` and any data passed to `input` will be passed
+            to `transition.trigger`, which will be passed to the hook.
         """
         assert isinstance(transition, Transition), 'transition must be a Transition'
-        assert callable(hook), 'hook must be Callable[[Transition, Any]]'
+        assert callable(hook), 'hook must be Callable[[Transition, dict, Any]]'
         assert transition in self.rules, 'transition must be in self.rules'
         transition.add_hook(hook)
 
     def remove_transition_hook(
-            self, transition: Transition, hook: Callable[[Transition, Any]]
+            self, transition: Transition, hook: Callable[[Transition, dict, Any]]
         ) -> None:
         """Removes a callback that fires after a Transition occurs."""
         assert isinstance(transition, Transition), 'transition must be a Transition'
-        assert callable(hook), 'hook must be Callable[[Transition, Any]]'
+        assert callable(hook), 'hook must be Callable[[Transition, dict, Any]]'
         assert transition in self.rules, 'transition must be in self.rules'
         transition.remove_hook(hook)
 
@@ -263,23 +282,37 @@ class FSM:
         return len(self.would(event)) > 0
 
     def input(self, event: Enum|str, data: Any = None) -> Enum|str:
-        """Attempt to process an event, returning the resultant state."""
+        """Attempt to process an event, returning the resultant state.
+            If multiple valid transitions exist, select one according to
+            the probabilities, passing `self.context` when calling any
+            callable transition probability. Call all relevant hooks,
+            passing `self`, `event`, and `data` to event hooks and
+            `self.context` and `data` to transition hooks. If an event
+            hook returns `False`, the transition is canceled.
+        """
         possible_transitions = self.would(event)
         transition = None
+
         if len(possible_transitions) == 1:
             transition = possible_transitions[0]
             self.next = transition.to_state
+
         if len(possible_transitions) > 1:
             probabilities: list[tuple[float, Transition]] = []
             cumulative = 0.0
             for tn in possible_transitions:
-                cumulative += tn.probability
+                if callable(tn.probability):
+                    cumulative += tn.probability(self.context)
+                else:
+                    cumulative += tn.probability
                 probabilities.append((cumulative, tn))
-            choice = random()
+            choice = random() * cumulative
             for probability, tn in probabilities:
                 if choice < probability:
                     transition = tn
                     break
+            if not transition:
+                return self.current # no valid transition selected
             self.next = transition.to_state
 
         if event in self._event_hooks:
@@ -294,7 +327,7 @@ class FSM:
             self.previous = self.current
             self.current = self.next
             self.next = None
-            transition.trigger(data)
+            transition.trigger(self.context, data)
 
         return self.current
 
@@ -308,17 +341,21 @@ class FSM:
         right_stem = int((len(right_eye) + len(left_eye) + len(space))/2)
         right_stem = "".join([" " for _ in range(right_stem)]) + "/"
         middle_space = "".join([" " for _ in range(len(left_stem) - 2)])
-        return f"""\
-{left_eye}{space}{right_eye}
-{left_stem}{right_stem}
-{middle_space}((({self.current})))
-{self._valid_transitions}
-        s     s        s         s
-       s        s     s            s
-      s        s                  s
-       s                            s
+        fsm = f"""\
+        {left_eye}{space}{right_eye}
+        {left_stem}{right_stem}
+        {middle_space}((({self.current})))
+        {self._valid_transitions}
+                s     s        s         s
+               s        s     s            s
+              s        s                  s
+               s                            s
 
-~Touched by His Noodly Appendage~"""
+        ~Touched by His Noodly Appendage~"""
+        # fix formatting of output; avoid screwing up code folding of this
+        # method in vim
+        fsm = '\n'.join([l[8:] for l in fsm.split('\n')])
+        return fsm
 
     def pack(self) -> bytes:
         """Serialize to bytes using packify."""
@@ -347,6 +384,7 @@ class FSM:
             'current': current,
             'previous': previous,
             'next': next,
+            'context': self.context,
         })
 
     @classmethod
@@ -365,7 +403,7 @@ class FSM:
         """
         dependencies = {**globals(), **inject}
         data = unpack(data, inject=dependencies)
-        fsm = cls()
+        fsm = cls(context=data['context'])
         for transition, hooks in transition_hooks.items():
             assert type(hooks) is list, 'transition_hooks must be list[Callable]'
             for hook in hooks:
