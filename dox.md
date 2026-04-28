@@ -133,7 +133,7 @@ Represent the state machine as a Flying Spaghetti Monster.
 
 Serialize to bytes using packify.
 
-##### `@classmethod unpack(data: bytes, /, *, event_hooks: dict[Enum | str, list[Callable[[Enum | str, FSM, Any], bool]]] = {}, transition_hooks: dict[Transition, list[Callable[[Transition, Any]]]] = {}, inject: dict = {}) -> FSM:`
+##### `@classmethod unpack(data: bytes, /, *, event_hooks: dict[Enum | str, list[Callable[[Enum | str, FSM, Any], bool]]] = {}, transition_hooks: dict[Transition, list[Callable[[Transition, dict, Any]]]] = {}, inject: dict = {}) -> FSM:`
 
 Deserialize from bytes using packify. Inject dependencies as necessary, e.g. the
 Enum classes representing states or events.

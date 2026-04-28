@@ -397,7 +397,7 @@ class FSM:
     def unpack(
             cls, data: bytes, /, *, inject: dict = {},
             transition_hooks: dict[
-                Transition, list[Callable[[Transition, Any]]]
+                Transition, list[Callable[[Transition, dict, Any]]]
             ] = {},
             event_hooks: dict[
                 Enum|str, list[Callable[[Enum|str, FSM, Any], bool]]
