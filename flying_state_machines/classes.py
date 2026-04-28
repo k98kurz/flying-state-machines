@@ -17,12 +17,12 @@ class Transition:
     to_state: Enum|str
     on_event: Enum|str
     probability: float|Callable[[dict], float]
-    hooks: list[Callable[[Transition, Any]]]
+    hooks: list[Callable[[Transition, dict, Any]]]
 
     def __init__(
             self, from_state: Enum|str, on_event: Enum|str, to_state: Enum|str,
             probability: float | Callable[[dict], float] = 1.0,
-            hooks: list[Callable[[Transition, Any]]] = None
+            hooks: list[Callable[[Transition, dict, Any]]] = None
         ) -> None:
         """Initializaton of a Transition instance performs an array of
             sanity checks to ensure the library is being used properly.
@@ -84,7 +84,7 @@ class Transition:
     @classmethod
     def unpack(
             cls, data: bytes, /, *, inject: dict = {},
-            hooks: list[Callable[[Transition, Any]]] = []
+            hooks: list[Callable[[Transition, dict, Any]]] = []
         ) -> Transition:
         """Deserialize from bytes using packify. Inject dependencies
             as necessary, e.g. the Enum classes representing states or
