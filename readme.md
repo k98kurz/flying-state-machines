@@ -19,20 +19,20 @@ The code is organized into two classes: `FSM` and `Transition`.
 - `FSM`
   - `add_event_hook(self, event: Enum|str, hook: Callable[[Enum|str, FSM], bool]) -> None:`
   - `remove_event_hook(self, event: Enum|str, hook: Callable[[Enum|str, FSM], bool]) -> None:`
-  - `add_transition_hook(self, transition: Transition, hook: Callable[[Transition]]) -> None:`
-  - `remove_transition_hook(self, transition: Transition, hook: Callable[[Transition]]) -> None:`
+  - `add_transition_hook(self, transition: Transition, hook: Callable[[Transition, dict, Any]]) -> None:`
+  - `remove_transition_hook(self, transition: Transition, hook: Callable[[Transition, dict, Any]]) -> None:`
   - `would(self, event: Enum|str) -> tuple[Transition]:`
   - `can(self, event: Enum|str) -> bool:`
-  - `input(self, event: Enum|str) -> Enum|str:`
+  - `input(self, event: Enum|str, data: Any = None) -> Enum|str:`
   - `pack(self) -> bytes:`
   - `@classmethod unpack(data: bytes, /, *, event_hooks: dict = {}, transition_hooks: dict = {}, inject: dict = {}) -> FSM:`
   - `touched(self) -> str:`
 - `Transition`
-  - `add_hook(self, hook: Callable[[Transition]]) -> None:`
-  - `remove_hook(self, hook: Callable[[Transition]]) -> None:`
-  - `trigger(self) -> None:`
+  - `add_hook(self, hook: Callable[[Transition, dict, Any]]) -> None:`
+  - `remove_hook(self, hook: Callable[[Transition, dict, Any]]) -> None:`
+  - `trigger(self, context: dict = None, data: Any = None) -> None:`
   - `pack(self) -> bytes:`
-  - `@classmethod unpack(cls, data: bytes,  /, *, hooks: list[Callable[[Transition]]] = [], inject: dict = {}) -> Transition:`
+  - `@classmethod unpack(cls, data: bytes,  /, *, hooks: list[Callable[[Transition, dict, Any]]] = [], inject: dict = {}) -> Transition:`
   - `@classmethod from_any(cls, from_states: type[Enum]|list[str], event: Enum|str, to_state: Enum|str, probability = 1.0) -> list[Transition]:`
   - `@classmethod to_any(cls, from_state: Enum|str, event: Enum|str, to_states: type[Enum]|list[str], total_probability = 1.0) -> list[Transition]:`
 
@@ -84,13 +84,16 @@ print(me.previous) # State.NORMAL_CLOTHES
 ```
 
 It is also possible to use `str` and `list[str]` instead of `Enum`s for states
-and events.
+and events. As of v0.3.0, subclasses of FSM have per-instance `context` dicts for
+storing arbitrary state data in addition to the finite states.
 
 ### Probabilistic transitions
 
 It is possible to encode probabilistic transitions by supplying multiple
 `Transition`s with identical `from_state` and `on_event`. The cumulative
-probability of all such `Transition`s must be <= 1.0.
+probability of all such `Transition`s _should_ be <= 1.0, but the result of a
+probabilistic transition choice will be normalized to the cumulative probability
+of all valid `Transition`s for the event.
 
 ```python
 from flying_state_machines import FSM, Transition
@@ -107,14 +110,47 @@ state = gun.input('spin') # 1/6 chance of getting shot
 print(state)
 ```
 
+Support for context-aware dynamic probabilities was added in v0.3.0. This should
+be useful for dynamic simulations, video game NPCs, etc.
+
+<details>
+<summary>Dynamic probabilities example</summary>
+
+```python
+from flying_state_machines import FSM, Transition
+
+def p_dead(context: dict) -> float:
+    return context.get('loaded_chambers', 0.0) / context.get('capacity', 6.0)
+
+def p_safe(context: dict) -> float:
+    return 1.0 - p_dead(context)
+
+class RussianRoulette(FSM):
+    initial_state = 'safe'
+    rules = set([
+        Transition('safe', 'spin', 'safe', p_safe),
+        Transition('safe', 'spin', 'dead', p_dead),
+    ])
+
+gun = RussianRoulette()
+state = gun.input('spin') # 0/6 chance of getting shot with an empty gun
+print(state)
+# load the gun
+gun.context['loaded_chambers'] = 6.0
+state = gun.input('spin') # guaranteed blam
+print(state)
+```
+</details>
+
 ### `Transition.to_any` and `Transition.from_any`
 
-There are helper class methods available for generating lists of `Transition`s
-in case they are useful. The `.to_any` method will return a list of `Transition`s
-that represents a probabilistic transition from a specific state to any valid state
-on the given event. The `.from_any` method will return a list of `Transition`s that
-represents a probabilistic transition from any valid state to a specific state on a
-given event. They can be used as follows:
+There are helper class methods available for generating lists of `Transition`s. The
+`.to_any` method will return a list of `Transition`s that represents a probabilistic
+transition from a specific state to a valid state on the given event, which will be
+useful in creating Markov chains. The `.from_any` method will return a list of
+`Transition`s that represents a probabilistic transition from a valid state to a
+specific state on a given event, which is useful for example in aborting to an error
+state. They can be used as follows:
 
 ```python
 from enum import Enum, auto
@@ -159,6 +195,9 @@ class Machine(FSM):
 The above will create a FSM that will transition to either `SUPERPOSITION` or
 `NEITHER` probabilistically upon the `QUANTUM_FOAM` event, and it will transition
 to either `WAITING` or `GOING` probabilistically upon the `NORMALIZE` event.
+
+Note that the first argument for `Transition.from_any` can be a list of specific
+states rather than a state enum.
 
 ### Hooks
 
@@ -218,8 +257,11 @@ to interact with the process.
 machine = PastaMachine()
 transition = machine.would('pour into pot')[0]
 
-def transition_hook(transition, data):
-    print(f'{transition.from_state} => {transition.to_state} with {data}')
+def transition_hook(transition, context, data):
+    print(
+        f'{transition.from_state} => {transition.to_state} '
+        f'with {context=} and {data=}'
+    )
 
 machine.add_transition_hook(transition, transition_hook)
 # semantically identical to transition.add_hook(transition_hook)
@@ -227,8 +269,9 @@ machine.add_transition_hook(transition, transition_hook)
 
 One thing to note is that `FSM.add_transition_hook` will perform an additional
 check to ensure that the `Transition` supplied is within the FSM rules. Also
-note that transition hooks will be triggered with the same event data as the
-event hooks, which is passed in as an optional second argument for `FSM.input`.
+note that transition hooks will be called with the Transition, the FSM `context`
+and the same event `data` as the event hooks, the latter of which is passed in
+as the optional second argument for `FSM.input`.
 
 ### Serialization
 
@@ -246,11 +289,20 @@ class State(Enum):
 class Event(Enum):
     SPIN = 'spin'
 
-transition = Transition(State.SAFE, Event.SPIN, State.DEAD, 1.0/6.0)
-hook = lambda _: print('BANG')
+def p_dead(context: dict) -> float:
+    return context.get('loaded_chambers', 1.0) / context.get('capacity', 6.0)
+
+# dynamic, context-based probabilities added in v0.3.0
+transition = Transition(State.SAFE, Event.SPIN, State.DEAD, p_dead)
+hook = lambda *_: print('BANG')
 transition.add_hook(hook)
 packed = transition.pack()
-unpacked = Transition.unpack(packed, hooks=[hook], inject={'State': State, 'Event': Event})
+unpacked = Transition.unpack(
+    packed, hooks=[hook], inject={
+        'State': State, 'Event': Event,
+        'p_dead': p_dead,
+    }
+)
 unpacked.trigger() # prints 'BANG'
 ```
 
@@ -293,8 +345,8 @@ FSMs.
 
 ## Testing
 
-This is a simple library with just 19 tests. To run the tests, clone the
-repo and then run the following:
+This is a simple library with 23 tests. To run the tests, clone the repo and
+then run the following:
 
 ```bash
 python tests/test_classes.py
@@ -306,11 +358,11 @@ One of the tests has visual output, which I suggest inspecting.
 
 ISC License
 
-Copyleft (c) 2023-2024 k98kurz
+Copyright (c) 2026 k98kurz
 
 Permission to use, copy, modify, and/or distribute this software
 for any purpose with or without fee is hereby granted, provided
-that the above copyleft notice and this permission notice appear in
+that the above copyright notice and this permission notice appear in
 all copies.
 
 THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
