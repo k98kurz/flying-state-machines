@@ -83,7 +83,7 @@ class Transition:
 
     @classmethod
     def unpack(
-            cls, data: bytes, /, *, inject: dict = {},
+            cls, data: bytes, inject: dict = {},
             hooks: list[Callable[[Transition, dict, Any]]] = []
         ) -> Transition:
         """Deserialize from bytes using packify. Inject dependencies
@@ -183,10 +183,13 @@ class FSM:
     previous: Enum|str|None
     next: Enum|str|None
     context: dict
+    random: Callable[[], float]
     _valid_transitions: dict[Enum|str, dict[Enum|str, list[Transition]]]
     _event_hooks: dict[Enum|str, list[Callable]]
 
-    def __init__(self, context: dict = None) -> None:
+    def __init__(
+            self, context: dict = None, random: Callable[[], float] = random
+        ) -> None:
         """Initialization of an FSM subclass instance performs an array
             of sanity checks to ensure the library is being used
             properly. Raises `AssertionError` if any necessary
@@ -194,7 +197,9 @@ class FSM:
             `initial_state`. Also processes `rules` to seed internal
             structures to enable Markov chain behaviors. Accepts an
             optional `context` dict that is passed to transition hooks
-            and any callable `transition.probability`.
+            and any callable `transition.probability`. Accepts an
+            optional `random` callable that will be used for deciding
+            probabilistic transitions (defaults to `random.random`).
         """
         assert hasattr(self, 'rules'), 'self.rules must be set[Transition]'
         assert isinstance(self.rules, set), 'self.rules must be set[Transition]'
@@ -222,11 +227,13 @@ class FSM:
         assert  (   isinstance(context, dict)
                     or context is None
                 ), 'context must be dict'
+        assert callable(random), 'random must be a callable that returns a float'
         self.current = self.initial_state
         self.previous = None
         self.next = None
         self._event_hooks = {}
         self.context = context or {}
+        self.random = random
 
     def add_event_hook(
             self, event: Enum|str,
@@ -312,7 +319,7 @@ class FSM:
                 else:
                     cumulative += tn.probability
                 probabilities.append((cumulative, tn))
-            choice = random() * cumulative
+            choice = self.random() * cumulative
             for probability, tn in probabilities:
                 if choice < probability:
                     transition = tn
@@ -395,13 +402,14 @@ class FSM:
 
     @classmethod
     def unpack(
-            cls, data: bytes, /, *, inject: dict = {},
+            cls, data: bytes, inject: dict = {},
             transition_hooks: dict[
                 Transition, list[Callable[[Transition, dict, Any]]]
             ] = {},
             event_hooks: dict[
                 Enum|str, list[Callable[[Enum|str, FSM, Any], bool]]
-            ] = {}
+            ] = {},
+            random: Callable[[], float] = random
         ) -> FSM:
         """Deserialize from bytes using packify. Inject dependencies
             as necessary, e.g. the Enum classes representing states or
@@ -409,7 +417,7 @@ class FSM:
         """
         dependencies = {**globals(), **inject}
         data = unpack(data, inject=dependencies)
-        fsm = cls(context=data['context'])
+        fsm = cls(context=data['context'], random=random)
         for transition, hooks in transition_hooks.items():
             assert type(hooks) is list, 'transition_hooks must be list[Callable]'
             for hook in hooks:

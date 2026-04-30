@@ -1,7 +1,9 @@
 from context import classes
 from enum import Enum, auto
+from hashlib import sha256
 from random import random
 from typing import Any
+import struct
 import unittest
 
 
@@ -530,6 +532,76 @@ class TestFSM(unittest.TestCase):
         machine.input('time passes')
         assert machine.current == 'hungry'
         assert machine.previous == 'sad'
+
+    def test_FSM_custom_random_e2e(self):
+        class Randomizer:
+            def __init__(self, seed: bytes = b'test'):
+                self.seed = seed
+                self.nonce = 0
+            def next(self) -> bytes:
+                self.nonce += 1
+                return sha256(self.seed + self.nonce.to_bytes(4, 'big')).digest()
+            def next_float(self) -> float:
+                return struct.unpack('!d', self.next()[:8])[0]
+            def reset(self):
+                self.nonce = 0
+
+        randomizer = Randomizer()
+        random = lambda: randomizer.next_float()
+
+        # quick sanity check for the Randomizer
+        assert Randomizer(b'123').next() != Randomizer(b'321').next(), (
+            'different seeds should produce different byte streams'
+        )
+        assert randomizer.next() != randomizer.next(), (
+            'subsequent calls should return different bytes'
+        )
+
+        # first run without the custom randomizer
+        transitions1 = [0, 0]
+        for _ in range(100):
+            machine = Machine()
+            machine.input(Event.QUANTUM_FOAM)
+            if machine.current is State.NEITHER:
+                transitions1[0] += 1
+            else:
+                transitions1[1] += 1
+
+        # now run with custom, deterministic randomizer
+        transitions2 = [0, 0]
+        for _ in range(100):
+            randomizer.reset()
+            machine = Machine(random=random)
+            machine.input(Event.QUANTUM_FOAM)
+            if machine.current is State.NEITHER:
+                transitions2[0] += 1
+            else:
+                transitions2[1] += 1
+
+        # using random.random() should provide a mix of transitions
+        assert transitions1[0] > 1 and transitions1[1] > 1, transitions1
+        # custom randomizer with reset should be deterministic
+        assert transitions2[0] == 0 or transitions2[1] == 0, transitions2
+        assert transitions2[0] == 100 or transitions2[1] == 100, transitions2
+
+        # now test pack and unpack with custom randomizer
+        transitions3 = [0, 0]
+        for _ in range(100):
+            randomizer.reset()
+            machine = Machine.unpack(
+                Machine().pack(),
+                inject=globals(),
+                random=random
+            )
+            machine.input(Event.QUANTUM_FOAM)
+            if machine.current is State.NEITHER:
+                transitions3[0] += 1
+            else:
+                transitions3[1] += 1
+
+        # should be deterministic
+        assert transitions3[0] == 0 or transitions3[1] == 0, transitions3
+        assert transitions3[0] == 100 or transitions3[1] == 100, transitions2
 
 
 if __name__ == "__main__":
