@@ -2,6 +2,8 @@
 
 - Added ability to specify a random function for probabilistic transitions
 - Removed `/, *,` from method signatures to remove previous keyword-only constraints
+- Added CLI for exporting agent skill to AI coding environments (generic,
+  OpenCode, Claude Code, Cursor, Codex): `fsm [skill|opencode|claude|cursor|codex]`
 
 ## 0.3.0
 

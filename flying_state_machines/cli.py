@@ -9,7 +9,7 @@ def get_skill_command(output_dir: str | None = None) -> None:
     skill_md = (files('flying_state_machines') / 'SKILL.md').read_text()
 
     if output_dir:
-        output_path = Path(output_dir) / 'FSM'
+        output_path = Path(output_dir) / 'flying-state-machines'
         output_path.mkdir(parents=True, exist_ok=True)
         (output_path / 'SKILL.md').write_text(skill_md)
         print(f"Skill copied to {output_path}/SKILL.md")
@@ -21,7 +21,7 @@ def opencode_skill_command() -> None:
     skill_md = (files('flying_state_machines') / 'SKILL.md').read_text()
 
     output_dir = '.opencode/skills'
-    output_path = Path(output_dir) / 'FSM'
+    output_path = Path(output_dir) / 'flying-state-machines'
     output_path.mkdir(parents=True, exist_ok=True)
     (output_path / 'SKILL.md').write_text(skill_md)
     print(f"Skill copied to {output_path}/SKILL.md")
@@ -32,7 +32,7 @@ def cursor_skill_command() -> None:
     skill_md = (files('flying_state_machines') / 'SKILL.md').read_text()
 
     output_dir = '.cursor/skills'
-    output_path = Path(output_dir) / 'FSM'
+    output_path = Path(output_dir) / 'flying-state-machines'
     output_path.mkdir(parents=True, exist_ok=True)
     (output_path / 'SKILL.md').write_text(skill_md)
     print(f"Skill copied to {output_path}/SKILL.md")
@@ -42,7 +42,7 @@ def claude_skill_command() -> None:
     skill_md = (files('flying_state_machines') / 'SKILL.md').read_text()
 
     output_dir = '.claude/skills'
-    output_path = Path(output_dir) / 'FSM'
+    output_path = Path(output_dir) / 'flying-state-machines'
     output_path.mkdir(parents=True, exist_ok=True)
     (output_path / 'SKILL.md').write_text(skill_md)
     print(f"Skill copied to {output_path}/SKILL.md")
@@ -52,7 +52,7 @@ def codex_skill_command() -> None:
     skill_md = (files('flying_state_machines') / 'SKILL.md').read_text()
 
     output_dir = '.agents/skills'
-    output_path = Path(output_dir) / 'FSM'
+    output_path = Path(output_dir) / 'flying-state-machines'
     output_path.mkdir(parents=True, exist_ok=True)
     (output_path / 'SKILL.md').write_text(skill_md)
     print(f"Skill copied to {output_path}/SKILL.md")
@@ -61,7 +61,7 @@ def codex_skill_command() -> None:
 def main() -> None:
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
-        prog='FSM',
+        prog='fsm',
         description='Automagical universal serialization library'
     )
 

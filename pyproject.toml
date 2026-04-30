@@ -23,6 +23,9 @@ dependencies = [
   "packify >= 0.3.3",
 ]
 
+[project.scripts]
+fsm = "flying_state_machines.cli:main"
+
 [project.urls]
 "Homepage" = "https://pycelium.com"
 "Repository" = "https://github.com/k98kurz/flying-state-machines"
