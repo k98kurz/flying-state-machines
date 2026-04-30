@@ -28,3 +28,16 @@ dependencies = [
 "Repository" = "https://github.com/k98kurz/flying-state-machines"
 "Bug Tracker" = "https://github.com/k98kurz/flying-state-machines/issues"
 
+[tool.hatch.build.targets.wheel]
+exclude = [
+  "/tests",
+  ".opencode",
+  "AGENTS.md",
+]
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+  "/tests",
+  ".opencode",
+  "AGENTS.md",
+]

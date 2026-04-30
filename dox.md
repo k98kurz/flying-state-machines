@@ -31,7 +31,7 @@ necessary precondition check fails, i.e. invalid `from_state`, `to_state`,
 
 Serialize to bytes using packify.
 
-##### `@classmethod unpack(data: bytes, /, *, hooks: list[Callable[[Transition, dict, Any]]] = [], inject: dict = {}) -> Transition:`
+##### `@classmethod unpack(data: bytes, inject: dict = {}, hooks: list[Callable[[Transition, dict, Any]]] = []) -> Transition:`
 
 Deserialize from bytes using packify. Inject dependencies as necessary, e.g. the
 Enum classes representing states or events.
@@ -73,19 +73,22 @@ Finite State Machine base. Should be used by subclassing with `rules` and
 - previous: Enum | str | None
 - next: Enum | str | None
 - context: dict
+- random: Callable[[], float]
 - _valid_transitions: dict[Enum | str, dict[Enum | str, list[Transition]]]
 - _event_hooks: dict[Enum | str, list[Callable]]
 
 #### Methods
 
-##### `__init__(context: dict = None) -> None:`
+##### `__init__(context: dict = None, random: Callable[[], float] = <built-in method random of Random object at 0xa983de0>) -> None:`
 
 Initialization of an FSM subclass instance performs an array of sanity checks to
 ensure the library is being used properly. Raises `AssertionError` if any
 necessary precondition checks fail, e.g. invalid `rules` or `initial_state`.
 Also processes `rules` to seed internal structures to enable Markov chain
 behaviors. Accepts an optional `context` dict that is passed to transition hooks
-and any callable `transition.probability`.
+and any callable `transition.probability`. Accepts an optional `random` callable
+that will be used for deciding probabilistic transitions (defaults to
+`random.random`).
 
 ##### `add_event_hook(event: Enum | str, hook: Callable[[Enum | str, FSM, Any], bool]) -> None:`
 
@@ -133,7 +136,7 @@ Represent the state machine as a Flying Spaghetti Monster.
 
 Serialize to bytes using packify.
 
-##### `@classmethod unpack(data: bytes, /, *, event_hooks: dict[Enum | str, list[Callable[[Enum | str, FSM, Any], bool]]] = {}, transition_hooks: dict[Transition, list[Callable[[Transition, dict, Any]]]] = {}, inject: dict = {}) -> FSM:`
+##### `@classmethod unpack(data: bytes, inject: dict = {}, transition_hooks: dict[Transition, list[Callable[[Transition, dict, Any]]]] = {}, event_hooks: dict[Enum | str, list[Callable[[Enum | str, FSM, Any], bool]]] = {}, random: Callable[[], float] = <built-in method random of Random object at 0xa983de0>) -> FSM:`
 
 Deserialize from bytes using packify. Inject dependencies as necessary, e.g. the
 Enum classes representing states or events.

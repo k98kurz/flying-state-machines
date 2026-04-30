@@ -1,3 +1,8 @@
+## 0.3.1
+
+- Added ability to specify a random function for probabilistic transitions
+- Removed `/, *,` from method signatures to remove previous keyword-only constraints
+
 ## 0.3.0
 
 - Added `context` dict property to FSM (and init param) for arbitrary state data
