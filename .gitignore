@@ -5,3 +5,5 @@ __pycache__/
 dist/
 build/
 **.sw?
+.opencode/node_modules
+.opencode/package*

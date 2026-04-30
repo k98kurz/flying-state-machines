@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "flying-state-machines"
-version = "0.3.0"
+version = "0.3.1-dev"
 authors = [
   { name="k98kurz", email="k98kurz@gmail.com" },
 ]
@@ -20,7 +20,7 @@ classifiers = [
   "Topic :: Software Development :: Libraries",
 ]
 dependencies = [
-  "packify >= 0.3.1",
+  "packify >= 0.3.2",
 ]
 
 [project.urls]
