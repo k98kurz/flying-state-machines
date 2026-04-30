@@ -20,7 +20,7 @@ classifiers = [
   "Topic :: Software Development :: Libraries",
 ]
 dependencies = [
-  "packify >= 0.3.2",
+  "packify >= 0.3.3",
 ]
 
 [project.urls]
@@ -31,6 +31,7 @@ dependencies = [
 [tool.hatch.build.targets.wheel]
 exclude = [
   "/tests",
+  ".github",
   ".opencode",
   "AGENTS.md",
 ]
@@ -38,6 +39,7 @@ exclude = [
 [tool.hatch.build.targets.sdist]
 exclude = [
   "/tests",
+  ".github",
   ".opencode",
   "AGENTS.md",
 ]
