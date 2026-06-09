@@ -2,6 +2,7 @@
 name: flying-state-machines
 description: >
   Use this skill when the user needs to implement deterministic or probabilistic finite state machines (FSMs/Markov chains), state transitions, or game AI logic. Apply even for workflow automation, NPC behavior, or decision systems where state-based logic would help, even if they don't explicitly mention "FSM" or "state machine."
+version: 0.3.1
 ---
 
 # Flying State Machines Agent Skill
@@ -57,6 +58,29 @@ machine.previous             # State.WAITING
 **Hooks**: 
 - **Event hooks**: Fire before state changes. Return `False` to cancel.
 - **Transition hooks**: Fire after state changes occur.
+
+### Async Usage
+
+`AsyncFSM` and `AsyncTransition` provide async versions of the sync classes.
+Only `input()` and `trigger()` are `async def` and must be awaited; all other
+methods are synchronous.
+
+```python
+from flying_state_machines import AsyncFSM, AsyncTransition
+
+class Machine(AsyncFSM):
+    initial_state = State.WAITING
+    rules = set([
+        AsyncTransition(State.WAITING, Event.START, State.GOING),
+    ])
+
+machine = Machine()
+state = await machine.input(Event.START)
+```
+
+Hooks attached to `AsyncTransition` can be sync or async — the library
+handles both transparently (detects coroutines and awaits them).
+
 
 ## Common Patterns
 

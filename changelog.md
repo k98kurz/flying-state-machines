@@ -1,3 +1,16 @@
+## 0.3.1
+
+- Added `AsyncFSM` and `AsyncTransition` classes mirroring the sync API with async
+  `input()` and `trigger()` methods.
+  - All sync-only methods (`would`, `can`, hooks, `pack`/`unpack`, `touched`)
+    remain synchronous and work identically.
+  - Hooks on `AsyncTransition` support both sync and async callables.
+  - Event hooks on `AsyncFSM` support both sync and async callables.
+  - Compatible with all existing patterns (probabilistic transitions, context,
+    serialization, custom random).
+- Updated bundled skill.
+
+
 ## 0.3.0
 
 ### Core Features
