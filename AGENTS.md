@@ -1,5 +1,9 @@
 # Agent Instructions
 
+## Code Style
+
+The code style guidelines can be found in codestyle.md.
+
 ## Testing
 
 Run tests with:

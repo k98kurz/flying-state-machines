@@ -1,4 +1,5 @@
 from __future__ import annotations
+from .errors import type_assert, value_assert
 from enum import Enum
 from packify import pack, unpack
 from random import random
@@ -24,24 +25,23 @@ class Transition:
             probability: float | Callable[[dict], float] = 1.0,
             hooks: list[Callable[[Transition, dict, Any]]] = None
         ) -> None:
-        """Initializaton of a Transition instance performs an array of
+        """Initialization of a Transition instance performs an array of
             sanity checks to ensure the library is being used properly.
-            Raises `AssertionError` if any necessary precondition check
+            Raises `TypeError` if any necessary precondition check
             fails, i.e. invalid `from_state`, `to_state`, `event`,
             `probability`, or `hooks`.
         """
-        assert isinstance(from_state, Enum) or type(from_state) is str, \
-            'from_state must be Enum or str'
-        assert isinstance(to_state, Enum) or type(to_state) is str, \
-            'to_state must be Enum or str'
-        assert isinstance(on_event, Enum) or type(on_event) is str, \
-            'on_event must be Enum or str'
-        assert  (   type(probability) is float
-                    or callable(probability)
-                ), 'probability must be float | Callable[[dict], float]'
+        type_assert(isinstance(from_state, Enum) or type(from_state) is str,
+            'from_state must be Enum or str')
+        type_assert(isinstance(to_state, Enum) or type(to_state) is str,
+            'to_state must be Enum or str')
+        type_assert(isinstance(on_event, Enum) or type(on_event) is str,
+            'on_event must be Enum or str')
+        type_assert(type(probability) is float or callable(probability),
+            'probability must be float | Callable[[dict], float]')
         hooks = hooks or []
         for hook in hooks:
-            assert callable(hook), 'each hook must be callable'
+            type_assert(callable(hook), 'each hook must be callable')
         self.from_state = from_state
         self.to_state = to_state
         self.on_event = on_event
@@ -111,7 +111,8 @@ class Transition:
             on_event = enumclass(on_event[1])
         if type(probability) is str:
             probability = dependencies.get(probability)
-            assert callable(probability)
+            type_assert(callable(probability),
+                'probability callable must be available in inject')
 
         return cls(
             from_state=from_state,
@@ -125,12 +126,12 @@ class Transition:
         """Adds a hook for when the Transition occurs. Any context and
             data passed to `trigger` will be passed to the hook.
         """
-        assert callable(hook), 'hook must be Callable[[Transition, dict, Any]]'
+        type_assert(callable(hook), 'hook must be Callable[[Transition, dict, Any]]')
         self.hooks.append(hook)
 
     def remove_hook(self, hook: Callable[[Transition, dict, Any]]) -> None:
         """Removes a hook if it had been previously added."""
-        assert callable(hook), 'hook must be Callable[[Transition, dict, Any]]'
+        type_assert(callable(hook), 'hook must be Callable[[Transition, dict, Any]]')
         if hook in self.hooks:
             self.hooks.remove(hook)
 
@@ -192,7 +193,7 @@ class FSM:
         ) -> None:
         """Initialization of an FSM subclass instance performs an array
             of sanity checks to ensure the library is being used
-            properly. Raises `AssertionError` if any necessary
+            properly. Raises `TypeError` or `ValueError` if any necessary
             precondition checks fail, e.g. invalid `rules` or
             `initial_state`. Also processes `rules` to seed internal
             structures to enable Markov chain behaviors. Accepts an
@@ -201,12 +202,11 @@ class FSM:
             optional `random` callable that will be used for deciding
             probabilistic transitions (defaults to `random.random`).
         """
-        assert hasattr(self, 'rules'), 'self.rules must be set[Transition]'
-        assert isinstance(self.rules, set), 'self.rules must be set[Transition]'
+        value_assert(hasattr(self, 'rules'), 'self.rules must be set[Transition]')
+        type_assert(isinstance(self.rules, set), 'self.rules must be set[Transition]')
         self._valid_transitions = {}
-        self._event_hooks =  {}
         for rule in self.rules:
-            assert isinstance(rule, Transition), 'self.rules must be set[Transition]'
+            type_assert(isinstance(rule, Transition), 'self.rules must be set[Transition]')
             if rule.from_state not in self._valid_transitions:
                 self._valid_transitions[rule.from_state] = {}
             if rule.on_event not in self._valid_transitions[rule.from_state]:
@@ -219,15 +219,13 @@ class FSM:
                     0 if callable(r.probability) else r.probability
                     for r in transitions
                 ])
-                assert total_probability <= 1.0, (
+                value_assert(total_probability <= 1.0,
                     'total probability for state transitions must be <= 1.0')
-        assert  (   isinstance(self.initial_state, Enum)
-                    or type(self.initial_state) is str
-                ), 'self.initial_state must be Enum or str'
-        assert  (   isinstance(context, dict)
-                    or context is None
-                ), 'context must be dict'
-        assert callable(random), 'random must be a callable that returns a float'
+        type_assert(isinstance(self.initial_state, Enum) or type(self.initial_state) is str,
+            'self.initial_state must be Enum or str')
+        type_assert(isinstance(context, dict) or context is None,
+            'context must be dict')
+        type_assert(callable(random), 'random must be a callable that returns a float')
         self.current = self.initial_state
         self.previous = None
         self.next = None
@@ -242,7 +240,7 @@ class FSM:
         """Adds a callback that fires before an event is processed. If
             any callback returns False, the event is cancelled.
         """
-        assert callable(hook), 'hook must be Callable[[Enum|str, FSM, Any], bool]'
+        type_assert(callable(hook), 'hook must be Callable[[Enum|str, FSM, Any], bool]')
         if event not in self._event_hooks:
             self._event_hooks[event] = []
         self._event_hooks[event].append(hook)
@@ -251,7 +249,7 @@ class FSM:
             self, event: Enum|str, hook: Callable[[Enum|str, FSM, Any], bool]
         ) -> None:
         """Removes a callback that fires before an event is processed."""
-        assert callable(hook), 'hook must be Callable[[Enum|str, FSM, Any], bool]'
+        type_assert(callable(hook), 'hook must be Callable[[Enum|str, FSM, Any], bool]')
         if event not in self._event_hooks:
             return
         if hook in self._event_hooks[event]:
@@ -264,18 +262,18 @@ class FSM:
             `self.context` and any data passed to `input` will be passed
             to `transition.trigger`, which will be passed to the hook.
         """
-        assert isinstance(transition, Transition), 'transition must be a Transition'
-        assert callable(hook), 'hook must be Callable[[Transition, dict, Any]]'
-        assert transition in self.rules, 'transition must be in self.rules'
+        type_assert(isinstance(transition, Transition), 'transition must be a Transition')
+        type_assert(callable(hook), 'hook must be Callable[[Transition, dict, Any]]')
+        value_assert(transition in self.rules, 'transition must be in self.rules')
         transition.add_hook(hook)
 
     def remove_transition_hook(
             self, transition: Transition, hook: Callable[[Transition, dict, Any]]
         ) -> None:
         """Removes a callback that fires after a Transition occurs."""
-        assert isinstance(transition, Transition), 'transition must be a Transition'
-        assert callable(hook), 'hook must be Callable[[Transition, dict, Any]]'
-        assert transition in self.rules, 'transition must be in self.rules'
+        type_assert(isinstance(transition, Transition), 'transition must be a Transition')
+        type_assert(callable(hook), 'hook must be Callable[[Transition, dict, Any]]')
+        value_assert(transition in self.rules, 'transition must be in self.rules')
         transition.remove_hook(hook)
 
     def would(self, event: Enum|str) -> tuple[Transition]:
@@ -419,7 +417,7 @@ class FSM:
         data = unpack(data, inject=dependencies)
         fsm = cls(context=data['context'], random=random)
         for transition, hooks in transition_hooks.items():
-            assert type(hooks) is list, 'transition_hooks must be list[Callable]'
+            type_assert(type(hooks) is list, 'transition_hooks must be list[Callable]')
             for hook in hooks:
                 fsm.add_transition_hook(transition, hook)
         initial_state = data['initial_state']
@@ -449,7 +447,7 @@ class FSM:
         fsm.previous = previous
         fsm.next = next
         for event, hooks in event_hooks.items():
-            assert type(hooks) is list, 'event_hooks must be list[Callable]'
+            type_assert(type(hooks) is list, 'event_hooks must be list[Callable]')
             for hook in hooks:
                 fsm.add_event_hook(event, hook)
         return fsm

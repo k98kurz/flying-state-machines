@@ -58,15 +58,15 @@ class TestTransition(unittest.TestCase):
         classes.Transition(State.WAITING, Event.START, State.GOING)
         classes.Transition("WAITING", "START", "GOING")
 
-        with self.assertRaises(AssertionError) as e:
+        with self.assertRaises(TypeError) as e:
             classes.Transition(b'waiting', State.GOING, Event.START)
         assert str(e.exception) == 'from_state must be Enum or str'
 
-        with self.assertRaises(AssertionError) as e:
+        with self.assertRaises(TypeError) as e:
             classes.Transition(State.WAITING, Event.START, b'State.GOING')
         assert str(e.exception) == 'to_state must be Enum or str'
 
-        with self.assertRaises(AssertionError) as e:
+        with self.assertRaises(TypeError) as e:
             classes.Transition(State.WAITING, b'Event.START', State.GOING)
         assert str(e.exception) == 'on_event must be Enum or str'
 
@@ -93,11 +93,11 @@ class TestTransition(unittest.TestCase):
         transition = classes.Transition(State.WAITING, State.GOING, Event.START)
         log = {'count': 0, 'data': []}
 
-        with self.assertRaises(AssertionError) as e:
+        with self.assertRaises(TypeError) as e:
             transition.add_hook(1)
         assert str(e.exception) == 'hook must be Callable[[Transition, dict, Any]]'
 
-        with self.assertRaises(AssertionError) as e:
+        with self.assertRaises(TypeError) as e:
             transition.remove_hook(1)
         assert str(e.exception) == 'hook must be Callable[[Transition, dict, Any]]'
 
@@ -270,7 +270,7 @@ class TestTransition(unittest.TestCase):
 
 class TestFSM(unittest.TestCase):
     def test_direct_FSM_initialization_raises_error(self):
-        with self.assertRaises(AssertionError) as e:
+        with self.assertRaises(ValueError) as e:
             classes.FSM()
         assert str(e.exception) == 'self.rules must be set[Transition]'
 
@@ -355,7 +355,7 @@ class TestFSM(unittest.TestCase):
                 log[f"{event}_data"] = [a for a in args if a is not None]
             log[event] += 1
 
-        with self.assertRaises(AssertionError) as e:
+        with self.assertRaises(TypeError) as e:
             machine.add_event_hook(Event.START, 1)
         assert str(e.exception) == 'hook must be Callable[[Enum|str, FSM, Any], bool]'
 
