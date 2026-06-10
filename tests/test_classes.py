@@ -277,7 +277,10 @@ class TestFSM(unittest.TestCase):
     def test_FSM_subclass_initializes_properly(self):
         machine = Machine()
         assert hasattr(machine, 'rules') and type(machine.rules) is set
-        assert hasattr(machine, 'initial_state') and type(machine.initial_state) is State
+        assert (
+            hasattr(machine, 'initial_state')
+            and type(machine.initial_state) is State
+        )
         assert hasattr(machine, 'current') and type(machine.current) is State
         assert hasattr(machine, 'previous') and machine.previous is None
         assert hasattr(machine, 'next') and machine.next is None
@@ -357,7 +360,9 @@ class TestFSM(unittest.TestCase):
 
         with self.assertRaises(TypeError) as e:
             machine.add_event_hook(Event.START, 1)
-        assert str(e.exception) == 'hook must be Callable[[Enum|str, FSM, Any], bool]'
+        assert str(e.exception) == (
+            'hook must be Callable[[Enum|str, FSM, Any], bool]'
+        )
 
         machine.add_event_hook(Event.START, hook)
         machine.add_event_hook('fake event', hook)

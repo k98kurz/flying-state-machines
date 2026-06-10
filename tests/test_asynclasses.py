@@ -96,11 +96,17 @@ class TestTransition(unittest.TestCase):
 
         with self.assertRaises(TypeError) as e:
             transition.add_hook(1)
-        assert str(e.exception) == 'hook must be Callable[[AsyncTransition, dict, Any], None | Awaitable[None]]'
+        assert str(e.exception) == (
+            'hook must be Callable[[AsyncTransition, dict, Any], None | '
+            'Awaitable[None]]'
+        )
 
         with self.assertRaises(TypeError) as e:
             transition.remove_hook(1)
-        assert str(e.exception) == 'hook must be Callable[[AsyncTransition, dict, Any], None | Awaitable[None]]'
+        assert str(e.exception) == (
+            'hook must be Callable[[AsyncTransition, dict, Any], None | '
+            'Awaitable[None]]'
+        )
 
         def hook(tn, *args):
             log['count'] += 1
@@ -284,7 +290,10 @@ class TestFSM(unittest.TestCase):
     def test_AsyncFSM_subclass_initializes_properly(self):
         machine = Machine()
         assert hasattr(machine, 'rules') and type(machine.rules) is set
-        assert hasattr(machine, 'initial_state') and type(machine.initial_state) is State
+        assert (
+            hasattr(machine, 'initial_state')
+            and type(machine.initial_state) is State
+        )
         assert hasattr(machine, 'current') and type(machine.current) is State
         assert hasattr(machine, 'previous') and machine.previous is None
         assert hasattr(machine, 'next') and machine.next is None
@@ -376,7 +385,10 @@ class TestFSM(unittest.TestCase):
 
         with self.assertRaises(TypeError) as e:
             machine.add_event_hook(Event.START, 1)
-        assert str(e.exception) == 'hook must be Callable[[Enum|str, AsyncFSM, Any], bool | Awaitable[bool]]'
+        assert str(e.exception) == (
+            'hook must be Callable[[Enum|str, AsyncFSM, Any], bool | '
+            'Awaitable[bool]]'
+        )
 
         machine.add_event_hook(Event.START, hook)
         machine.add_event_hook(Event.START, async_hook)
