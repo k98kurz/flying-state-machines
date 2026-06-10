@@ -66,16 +66,21 @@ Only `input()` and `trigger()` are `async def` and must be awaited; all other
 methods are synchronous.
 
 ```python
+import asyncio
 from flying_state_machines import AsyncFSM, AsyncTransition
 
 class Machine(AsyncFSM):
-    initial_state = State.WAITING
+    initial_state = 'waiting'
     rules = set([
-        AsyncTransition(State.WAITING, Event.START, State.GOING),
+        AsyncTransition('waiting', 'start', 'going'),
     ])
 
-machine = Machine()
-state = await machine.input(Event.START)
+async def main():
+    machine = Machine()
+    state = await machine.input('start')
+    print(state)  # 'going'
+
+asyncio.run(main())
 ```
 
 Hooks attached to `AsyncTransition` can be sync or async — the library

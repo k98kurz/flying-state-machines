@@ -8,6 +8,8 @@
   - Event hooks on `AsyncFSM` support both sync and async callables.
   - Compatible with all existing patterns (probabilistic transitions, context,
     serialization, custom random).
+- Replaced bare `assert` statements with `type_assert`/`value_assert` helpers
+  that raise `TypeError`/`ValueError` instead of `AssertionError`.
 - Updated bundled skill.
 
 
