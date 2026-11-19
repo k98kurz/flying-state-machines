@@ -1,70 +1,67 @@
 from __future__ import annotations
 from .version import __version__
-from pathlib import Path
 from importlib.resources import files
+from pathlib import Path
 import argparse
-import shutil
+
+
+def _write_skill_to_dir(output_dir: str) -> None:
+    """Write the FSM agent skill and references to an output directory."""
+    skill_md = (files('flying_state_machines') / 'skill/SKILL.md').read_text()
+    references_dir = files('flying_state_machines') / 'skill/references'
+    references = []
+    if references_dir.is_dir():
+        references = [r for r in references_dir.iterdir() if r.is_file()]
+
+    output_path = Path(output_dir).resolve() / 'flying-state-machines'
+    output_path.mkdir(parents=True, exist_ok=True)
+    (output_path / 'SKILL.md').write_text(skill_md)
+    if references:
+        refs_out = output_path / 'references'
+        refs_out.mkdir(exist_ok=True)
+        for ref in references:
+            (refs_out / ref.name).write_bytes(ref.read_bytes())
+    print(f"Skill copied to {output_path}/SKILL.md")
 
 
 def get_skill_command(output_dir: str | None = None) -> None:
     """Output the FSM agent skill."""
-    skill_md = (files('flying_state_machines') / 'SKILL.md').read_text()
-
     if output_dir:
-        output_path = Path(output_dir) / 'flying-state-machines'
-        output_path.mkdir(parents=True, exist_ok=True)
-        (output_path / 'SKILL.md').write_text(skill_md)
-        print(f"Skill copied to {output_path}/SKILL.md")
+        _write_skill_to_dir(output_dir)
     else:
+        skill_md = (files('flying_state_machines') / 'skill/SKILL.md').read_text()
+        dox_md = (files('flying_state_machines') / 'skill/references/dox.md').read_text()
         print(skill_md)
+        print("\n-----\n")
+        print(dox_md)
+
 
 def opencode_skill_command() -> None:
     """Output the FSM agent skill for OpenCode."""
-    skill_md = (files('flying_state_machines') / 'SKILL.md').read_text()
-
-    output_dir = '.opencode/skills'
-    output_path = Path(output_dir) / 'flying-state-machines'
-    output_path.mkdir(parents=True, exist_ok=True)
-    (output_path / 'SKILL.md').write_text(skill_md)
-    print(f"Skill copied to {output_path}/SKILL.md")
+    _write_skill_to_dir('.opencode/skills')
     print("Restart OpenCode to make it available to agents")
+
 
 def cursor_skill_command() -> None:
     """Output the FSM agent skill for Cursor."""
-    skill_md = (files('flying_state_machines') / 'SKILL.md').read_text()
+    _write_skill_to_dir('.cursor/skills')
 
-    output_dir = '.cursor/skills'
-    output_path = Path(output_dir) / 'flying-state-machines'
-    output_path.mkdir(parents=True, exist_ok=True)
-    (output_path / 'SKILL.md').write_text(skill_md)
-    print(f"Skill copied to {output_path}/SKILL.md")
 
 def claude_skill_command() -> None:
     """Output the FSM agent skill for Claude Code."""
-    skill_md = (files('flying_state_machines') / 'SKILL.md').read_text()
+    _write_skill_to_dir('.claude/skills')
 
-    output_dir = '.claude/skills'
-    output_path = Path(output_dir) / 'flying-state-machines'
-    output_path.mkdir(parents=True, exist_ok=True)
-    (output_path / 'SKILL.md').write_text(skill_md)
-    print(f"Skill copied to {output_path}/SKILL.md")
 
 def codex_skill_command() -> None:
     """Output the FSM agent skill for Codex."""
-    skill_md = (files('flying_state_machines') / 'SKILL.md').read_text()
-
-    output_dir = '.agents/skills'
-    output_path = Path(output_dir) / 'flying-state-machines'
-    output_path.mkdir(parents=True, exist_ok=True)
-    (output_path / 'SKILL.md').write_text(skill_md)
-    print(f"Skill copied to {output_path}/SKILL.md")
+    _write_skill_to_dir('.agents/skills')
 
 
 def main() -> None:
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
         prog='fsm',
-        description='Automagical universal serialization library'
+        description='Flying State Machine skill export command'
     )
     parser.add_argument(
         "--version", action="version", version=__version__,
@@ -118,7 +115,7 @@ def main() -> None:
     subparsers.add_parser(
         'codex',
         parents=[skill_parser],
-        help='opencode: Install the FSM agent skill compatibly with Codex',
+        help='codex: Install the FSM agent skill compatibly with Codex',
         description=f'Output the FSM agent skill for Codex'
     )
 

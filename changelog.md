@@ -4,6 +4,8 @@
 - `version.py` now reports version via `importlib.metadata.version('flying-state-machines')`.
 - Bundled agent skill updated to improve code-review/debug activation and document
   that `input(event)` fires event hooks when no transition matches.
+- Bundled agent skill now bundles `references/dox.md` (API documentation) with
+  `SKILL.md` for progressive disclosure on skill export.
 
 ## 0.3.1
 

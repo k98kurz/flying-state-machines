@@ -242,3 +242,7 @@ fsm.touched() # Returns ASCII art showing FSM state and transitions
 - **Serialization**: Enums and callables require `inject` dict on unpack. Hooks must be re-added.
 - **Multiple transitions**: If multiple valid transitions exist with same event/state, one is chosen probabilistically.
 - **Invalid transitions are no-ops, not errors**: Calling `input(event)` when the current state has no matching transition for `event` does not raise. It returns `self.current` unchanged; event hooks for that event still fire if registered, but no state change occurs and transition hooks don't fire. `would(event)` returns an empty tuple and `can(event)` returns `False` in that case. Query with `can()`/`would()` only if you need to branch on or guard against this — otherwise `input()` is safe to call unconditionally.
+
+## API Documentation
+
+For full API reference of `FSM`, `AsyncFSM`, `Transition`, and `AsyncTransition` (methods, annotations, signatures), see `references/dox.md`.

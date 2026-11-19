@@ -8,13 +8,13 @@ The code style guidelines can be found in codestyle.md.
 
 Run tests with:
 ```bash
-source venv/bin/activate && python tests/test_classes.py && python tests/test_asynclasses.py
+source venv/bin/activate && python tests/test_classes.py && python tests/test_asynclasses.py && python tests/test_cli.py
 ```
 
 ## Test Details
 
-- **Framework**: unittest (52 tests total: 26 sync + 26 async)
-- **Test files**: `tests/test_classes.py` and `tests/test_asynclasses.py`
+- **Framework**: unittest (55 tests total: 26 sync + 26 async + 3 CLI)
+- **Test files**: `tests/test_classes.py`, `tests/test_asynclasses.py`, and `tests/test_cli.py`
 - **Import path**: Tests import directly from the `flying_state_machines` package
 - **Run specific tests**: Use `-k` flag, e.g., `python tests/test_classes.py -k serialization`
 - **Visual tests**: `test_FSM_subclass_touched_is_Flying_Spaghetti_monster_str` (sync) and `test_AsyncFSM_subclass_touched_is_Flying_Spaghetti_monster_str` (async) print FSM serialization output

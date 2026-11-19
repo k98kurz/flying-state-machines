@@ -1,2 +1,2 @@
-autodox==0.1.16
+autodox==0.2.0
 packify==0.3.3
