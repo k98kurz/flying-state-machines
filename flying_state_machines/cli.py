@@ -1,7 +1,9 @@
-import argparse
-import shutil
+from __future__ import annotations
+from .version import __version__
 from pathlib import Path
 from importlib.resources import files
+import argparse
+import shutil
 
 
 def get_skill_command(output_dir: str | None = None) -> None:
@@ -63,6 +65,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         prog='fsm',
         description='Automagical universal serialization library'
+    )
+    parser.add_argument(
+        "--version", action="version", version=__version__,
     )
 
     subparsers = parser.add_subparsers(

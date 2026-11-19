@@ -1,3 +1,8 @@
+## 0.3.2
+
+- Added `--version` flag to the `fsm` CLI.
+- `version.py` now reports version via `importlib.metadata.version('flying-state-machines')`.
+
 ## 0.3.1
 
 - Added `AsyncFSM` and `AsyncTransition` classes mirroring the sync API with async

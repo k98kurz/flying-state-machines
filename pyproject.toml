@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "flying-state-machines"
-version = "0.3.1"
+version = "0.3.2"
 authors = [
   { name="k98kurz", email="k98kurz@gmail.com" },
 ]
@@ -37,6 +37,8 @@ exclude = [
   ".github",
   ".opencode",
   "AGENTS.md",
+  "codestyle.md",
+  "scripts/",
 ]
 
 [tool.hatch.build.targets.sdist]
@@ -45,4 +47,6 @@ exclude = [
   ".github",
   ".opencode",
   "AGENTS.md",
+  "codestyle.md",
+  "scripts/",
 ]
