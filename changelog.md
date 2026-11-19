@@ -2,6 +2,8 @@
 
 - Added `--version` flag to the `fsm` CLI.
 - `version.py` now reports version via `importlib.metadata.version('flying-state-machines')`.
+- Bundled agent skill updated to improve code-review/debug activation and document
+  that `input(event)` fires event hooks when no transition matches.
 
 ## 0.3.1
 

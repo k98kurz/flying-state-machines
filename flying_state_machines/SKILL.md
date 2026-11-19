@@ -1,8 +1,8 @@
 ---
 name: flying-state-machines
 description: >
-  Use this skill when the user needs to implement deterministic or probabilistic finite state machines (FSMs/Markov chains), state transitions, or game AI logic. Apply even for workflow automation, NPC behavior, or decision systems where state-based logic would help, even if they don't explicitly mention "FSM" or "state machine."
-version: 0.3.1
+  Use this skill when you need to implement, debug, or review deterministic or probabilistic finite state machines (FSMs/Markov chains), state transitions, or game AI logic. Apply even for workflow automation, NPC behavior, or decision systems where state-based logic would help, even if they don't explicitly mention "FSM" or "state machine." If "FSM", "event", "transition", or "state transition" are encountered, read this skill.
+version: 0.3.2
 ---
 
 # Flying State Machines Agent Skill
@@ -166,7 +166,38 @@ def deterministic_random():
 machine = Machine(random=deterministic_random)
 ```
 
-See the readme.md file for a concise implementation of a PRNG using sha256.
+#### Deterministic PRNG using sha256
+
+For deterministic testing with a reproducible PRNG, implement a custom randomizer:
+
+```python
+from hashlib import sha256
+import struct
+
+class Randomizer:
+    def __init__(self, seed: bytes = b'test'):
+        self.seed = seed
+        self.nonce = 0
+    def next_float(self) -> float:
+        self.nonce += 1
+        return struct.unpack('!d', sha256(
+            self.seed + self.nonce.to_bytes(4, 'big')
+        ).digest()[:8])[0]
+
+randomizer = Randomizer(b'deterministic-seed')
+machine = Machine(random=randomizer.next_float)
+```
+
+Custom random functions are not serialized in `pack()` data and must be
+re-supplied when calling `unpack()`:
+
+```python
+unpacked = Machine.unpack(
+    packed,
+    inject={'State': State, 'Event': Event},
+    random=randomizer.next_float
+)
+```
 
 ### Serialization
 
@@ -197,7 +228,7 @@ fsm.touched() # Returns ASCII art showing FSM state and transitions
 1. **Use Enum states and events** for better error messages and type checking.
 2. **Use `fsm.context` dict** for instance-specific data (e.g., NPC stats, game state) instead of global variables.
 3. **Total probability for transitions** from a state should be <= 1.0; library normalizes if needed.
-4. **Query before transition**: Use `can(event)` or `would(event)` to check if an event is valid.
+4. **Query before event**: Use `can(event)` or `would(event)` to check if an event would result in a state Transition. Note that `input(event)` is safe to call unconditionally — it returns `self.current` unchanged when no transition matches and fires relevant event hooks.
 5. **Test probabilistic logic** with custom random function for deterministic testing.
 6. **Event hooks return bool**: Return `True` to proceed, `False` to cancel.
 7. **Transition hooks don't return**: They only observe, cannot cancel; good for side effects.
@@ -210,3 +241,4 @@ fsm.touched() # Returns ASCII art showing FSM state and transitions
 - **Context updates**: Modifying `context` in hooks affects subsequent event processing.
 - **Serialization**: Enums and callables require `inject` dict on unpack. Hooks must be re-added.
 - **Multiple transitions**: If multiple valid transitions exist with same event/state, one is chosen probabilistically.
+- **Invalid transitions are no-ops, not errors**: Calling `input(event)` when the current state has no matching transition for `event` does not raise. It returns `self.current` unchanged; event hooks for that event still fire if registered, but no state change occurs and transition hooks don't fire. `would(event)` returns an empty tuple and `can(event)` returns `False` in that case. Query with `can()`/`would()` only if you need to branch on or guard against this — otherwise `input()` is safe to call unconditionally.

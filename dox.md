@@ -1,4 +1,4 @@
-# flying_state_machines
+# `flying_state_machines`
 
 ## Classes
 
@@ -9,19 +9,17 @@ Finite State Machine base. Should be used by subclassing with `rules` and
 
 #### Annotations
 
-- rules: set[AsyncTransition]
-- initial_state: Enum | str
-- current: Enum | str
-- previous: Enum | str | None
-- next: Enum | str | None
-- context: dict
-- random: Callable[[], float]
-- _valid_transitions: dict[Enum | str, dict[Enum | str, list[AsyncTransition]]]
-- _event_hooks: dict[Enum | str, list[Callable]]
+- `rules`: `set[AsyncTransition]`
+- `initial_state`: `Enum | str`
+- `current`: `Enum | str`
+- `previous`: `Enum | str | None`
+- `next`: `Enum | str | None`
+- `context`: `dict`
+- `random`: `Callable[[], float]`
 
 #### Methods
 
-##### `__init__(context: dict = None, random: Callable[[], float] = <built-in method random of Random object at 0x26858a20>) -> None:`
+##### `__init__(context: dict = None, random: Callable[[], float] = ...) -> None:`
 
 Initialization of an FSM subclass instance performs an array of sanity checks to
 ensure the library is being used properly. Raises `TypeError` or `ValueError` if
@@ -78,7 +76,7 @@ Represent the state machine as a Flying Spaghetti Monster.
 
 Serialize to bytes using packify.
 
-##### `@classmethod unpack(data: bytes, inject: dict = {}, transition_hooks: dict[AsyncTransition, list[Callable[[AsyncTransition, dict, Any], None | Awaitable[None]]]] = {}, event_hooks: dict[Enum | str, list[Callable[[Enum | str, AsyncFSM, Any], bool | Awaitable[bool]]]] = {}, random: Callable[[], float] = <built-in method random of Random object at 0x26858a20>) -> AsyncFSM:`
+##### `@classmethod unpack(data: bytes, inject: dict = {}, transition_hooks: dict[AsyncTransition, list[Callable[[AsyncTransition, dict, Any], None | Awaitable[None]]]] = {}, event_hooks: dict[Enum | str, list[Callable[[Enum | str, AsyncFSM, Any], bool | Awaitable[bool]]]] = {}, random: Callable[[], float] = ...) -> AsyncFSM:`
 
 Deserialize from bytes using packify. Inject dependencies as necessary, e.g. the
 Enum classes representing states or events.
@@ -93,11 +91,12 @@ dynamically by a callback that accepts a context dict.
 
 #### Annotations
 
-- from_state: Enum | str
-- to_state: Enum | str
-- on_event: Enum | str
-- probability: float | Callable[[dict], float]
-- hooks: list[Callable[[AsyncTransition, dict, Any], None | Awaitable[None]]]
+- `from_state`: `Enum | str`
+- `to_state`: `Enum | str`
+- `on_event`: `Enum | str`
+- `probability`: `float | Callable[[dict], float]`
+- `hooks`: `list[Callable[[AsyncTransition, dict, Any], None |
+Awaitable[None]]]`
 
 #### Methods
 
@@ -151,11 +150,11 @@ dynamically by a callback that accepts a context dict.
 
 #### Annotations
 
-- from_state: Enum | str
-- to_state: Enum | str
-- on_event: Enum | str
-- probability: float | Callable[[dict], float]
-- hooks: list[Callable[[Transition, dict, Any]]]
+- `from_state`: `Enum | str`
+- `to_state`: `Enum | str`
+- `on_event`: `Enum | str`
+- `probability`: `float | Callable[[dict], float]`
+- `hooks`: `list[Callable[[Transition, dict, Any]]]`
 
 #### Methods
 
@@ -206,19 +205,17 @@ Finite State Machine base. Should be used by subclassing with `rules` and
 
 #### Annotations
 
-- rules: set[Transition]
-- initial_state: Enum | str
-- current: Enum | str
-- previous: Enum | str | None
-- next: Enum | str | None
-- context: dict
-- random: Callable[[], float]
-- _valid_transitions: dict[Enum | str, dict[Enum | str, list[Transition]]]
-- _event_hooks: dict[Enum | str, list[Callable]]
+- `rules`: `set[Transition]`
+- `initial_state`: `Enum | str`
+- `current`: `Enum | str`
+- `previous`: `Enum | str | None`
+- `next`: `Enum | str | None`
+- `context`: `dict`
+- `random`: `Callable[[], float]`
 
 #### Methods
 
-##### `__init__(context: dict = None, random: Callable[[], float] = <built-in method random of Random object at 0x26858a20>) -> None:`
+##### `__init__(context: dict = None, random: Callable[[], float] = ...) -> None:`
 
 Initialization of an FSM subclass instance performs an array of sanity checks to
 ensure the library is being used properly. Raises `TypeError` or `ValueError` if
@@ -275,7 +272,7 @@ Represent the state machine as a Flying Spaghetti Monster.
 
 Serialize to bytes using packify.
 
-##### `@classmethod unpack(data: bytes, inject: dict = {}, transition_hooks: dict[Transition, list[Callable[[Transition, dict, Any]]]] = {}, event_hooks: dict[Enum | str, list[Callable[[Enum | str, FSM, Any], bool]]] = {}, random: Callable[[], float] = <built-in method random of Random object at 0x26858a20>) -> FSM:`
+##### `@classmethod unpack(data: bytes, inject: dict = {}, transition_hooks: dict[Transition, list[Callable[[Transition, dict, Any]]]] = {}, event_hooks: dict[Enum | str, list[Callable[[Enum | str, FSM, Any], bool]]] = {}, random: Callable[[], float] = ...) -> FSM:`
 
 Deserialize from bytes using packify. Inject dependencies as necessary, e.g. the
 Enum classes representing states or events.
@@ -284,4 +281,6 @@ Enum classes representing states or events.
 
 ### `version() -> str:`
 
+Return the current library version.
 
+*Generated by autodox v0.2.0 with Python 3.12.3*
