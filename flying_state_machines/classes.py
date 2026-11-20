@@ -93,8 +93,7 @@ class Transition:
             as necessary, e.g. the Enum classes representing states or
             events.
         """
-        dependencies = {**globals(), **inject}
-        data = unpack(data, inject=dependencies)
+        data = unpack(data, inject=inject)
         from_state = data['from_state']
         to_state = data['to_state']
         on_event = data['on_event']
@@ -103,29 +102,29 @@ class Transition:
         if type(from_state) is list:
             classname = from_state[0]
             value_assert(
-                classname in dependencies,
+                classname in inject,
                 f"enum class '{classname}' not available in inject"
             )
-            enumclass = dependencies[classname]
+            enumclass = inject[classname]
             from_state = enumclass(from_state[1])
         if type(to_state) is list:
             classname = to_state[0]
             value_assert(
-                classname in dependencies,
+                classname in inject,
                 f"enum class '{classname}' not available in inject"
             )
-            enumclass = dependencies[classname]
+            enumclass = inject[classname]
             to_state = enumclass(to_state[1])
         if type(on_event) is list:
             classname = on_event[0]
             value_assert(
-                classname in dependencies,
+                classname in inject,
                 f"enum class '{classname}' not available in inject"
             )
-            enumclass = dependencies[classname]
+            enumclass = inject[classname]
             on_event = enumclass(on_event[1])
         if type(probability) is str:
-            probability = dependencies.get(probability)
+            probability = inject.get(probability)
             type_assert(callable(probability),
                 'probability callable must be available in inject')
 
@@ -448,8 +447,7 @@ class FSM:
             as necessary, e.g. the Enum classes representing states or
             events.
         """
-        dependencies = {**globals(), **inject}
-        data = unpack(data, inject=dependencies)
+        data = unpack(data, inject=inject)
         value_assert(
             data['rules_hash'] == sha256(
                 pack({r.pack() for r in cls.rules})
@@ -470,34 +468,34 @@ class FSM:
         if type(initial_state) is list:
             classname = initial_state[0]
             value_assert(
-                classname in dependencies,
+                classname in inject,
                 f"enum class '{classname}' not available in inject"
             )
-            enumclass = dependencies[classname]
+            enumclass = inject[classname]
             initial_state = enumclass(initial_state[1])
         if type(current) is list:
             classname = current[0]
             value_assert(
-                classname in dependencies,
+                classname in inject,
                 f"enum class '{classname}' not available in inject"
             )
-            enumclass = dependencies[classname]
+            enumclass = inject[classname]
             current = enumclass(current[1])
         if type(previous) is list:
             classname = previous[0]
             value_assert(
-                classname in dependencies,
+                classname in inject,
                 f"enum class '{classname}' not available in inject"
             )
-            enumclass = dependencies[classname]
+            enumclass = inject[classname]
             previous = enumclass(previous[1])
         if type(next) is list:
             classname = next[0]
             value_assert(
-                classname in dependencies,
+                classname in inject,
                 f"enum class '{classname}' not available in inject"
             )
-            enumclass = dependencies[classname]
+            enumclass = inject[classname]
             next = enumclass(next[1])
 
         fsm.initial_state = initial_state
