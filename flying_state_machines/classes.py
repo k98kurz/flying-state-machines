@@ -1,6 +1,7 @@
 from __future__ import annotations
 from .errors import type_assert, value_assert
 from enum import Enum
+from hashlib import sha256
 from packify import pack, unpack
 from random import random
 from typing import Any, Callable
@@ -101,14 +102,26 @@ class Transition:
 
         if type(from_state) is list:
             classname = from_state[0]
+            value_assert(
+                classname in dependencies,
+                f"enum class '{classname}' not available in inject"
+            )
             enumclass = dependencies[classname]
             from_state = enumclass(from_state[1])
         if type(to_state) is list:
             classname = to_state[0]
+            value_assert(
+                classname in dependencies,
+                f"enum class '{classname}' not available in inject"
+            )
             enumclass = dependencies[classname]
             to_state = enumclass(to_state[1])
         if type(on_event) is list:
             classname = on_event[0]
+            value_assert(
+                classname in dependencies,
+                f"enum class '{classname}' not available in inject"
+            )
             enumclass = dependencies[classname]
             on_event = enumclass(on_event[1])
         if type(probability) is str:
@@ -410,7 +423,9 @@ class FSM:
         else:
             next = self.next
         return pack({
-            'rules': {r.pack() for r in self.rules},
+            'rules_hash': sha256(
+                pack({r.pack() for r in self.rules})
+            ).digest().hex(),
             'initial_state': initial_state,
             'current': current,
             'previous': previous,
@@ -435,6 +450,12 @@ class FSM:
         """
         dependencies = {**globals(), **inject}
         data = unpack(data, inject=dependencies)
+        value_assert(
+            data['rules_hash'] == sha256(
+                pack({r.pack() for r in cls.rules})
+            ).digest().hex(),
+            'rules_hash mismatch: serialized rules do not match class rules'
+        )
         fsm = cls(context=data['context'], random=random)
         for transition, hooks in transition_hooks.items():
             type_assert(type(hooks) is list,
@@ -448,18 +469,34 @@ class FSM:
 
         if type(initial_state) is list:
             classname = initial_state[0]
+            value_assert(
+                classname in dependencies,
+                f"enum class '{classname}' not available in inject"
+            )
             enumclass = dependencies[classname]
             initial_state = enumclass(initial_state[1])
         if type(current) is list:
             classname = current[0]
+            value_assert(
+                classname in dependencies,
+                f"enum class '{classname}' not available in inject"
+            )
             enumclass = dependencies[classname]
             current = enumclass(current[1])
         if type(previous) is list:
             classname = previous[0]
+            value_assert(
+                classname in dependencies,
+                f"enum class '{classname}' not available in inject"
+            )
             enumclass = dependencies[classname]
             previous = enumclass(previous[1])
         if type(next) is list:
             classname = next[0]
+            value_assert(
+                classname in dependencies,
+                f"enum class '{classname}' not available in inject"
+            )
             enumclass = dependencies[classname]
             next = enumclass(next[1])
 

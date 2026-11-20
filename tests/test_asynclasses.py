@@ -493,7 +493,20 @@ class TestFSM(unittest.TestCase):
         assert captured['data'] == 'event_data'
 
     def test_AsyncFSM_subclass_random_transitions(self):
-        machine = Machine()
+        class Randomizer:
+            def __init__(self, seed: bytes = b'test'):
+                self.seed = seed
+                self.nonce = 0
+            def next(self) -> bytes:
+                self.nonce += 1
+                return sha256(self.seed + self.nonce.to_bytes(4, 'big')).digest()
+            def next_float(self) -> float:
+                return int.from_bytes(self.next()[:8], 'big') / (2**64)
+            def reset(self):
+                self.nonce = 0
+
+        randomizer = Randomizer(b'seed0')
+        machine = Machine(random=lambda: randomizer.next_float())
         superposition, neither = 0, 0
 
         async def _test():
@@ -616,7 +629,7 @@ class TestFSM(unittest.TestCase):
                 self.nonce += 1
                 return sha256(self.seed + self.nonce.to_bytes(4, 'big')).digest()
             def next_float(self) -> float:
-                return struct.unpack('!d', self.next()[:8])[0]
+                return int.from_bytes(self.next()[:8], 'big') / (2**64)
             def reset(self):
                 self.nonce = 0
 

@@ -1,3 +1,7 @@
+## 0.4.0
+
+- Updated packify to 0.4.0
+
 ## 0.3.2
 
 - Added `--version` flag to the `fsm` CLI.
